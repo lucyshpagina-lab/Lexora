@@ -1063,3 +1063,33 @@ body.with-tree { overflow-x: hidden; }
 .toast--err { background: var(--rust); }
 
 .center { text-align: center; }
+
+/* ---- dev-mode OTP banner (visible only when backend uses mock email) ---- */
+.dev-otp-banner {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--bark);
+  border-radius: 12px;
+  background: rgba(200, 226, 106, 0.18);
+  font-size: 14px;
+}
+.dev-otp-banner strong {
+  display: inline-block; margin-bottom: 4px;
+  font: 700 11px 'JetBrains Mono', monospace;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--bark);
+}
+.dev-otp-banner p { margin: 4px 0 8px; color: var(--ink); }
+.dev-otp-code {
+  font: 700 18px 'JetBrains Mono', monospace;
+  letter-spacing: 0.18em;
+  background: var(--ink); color: var(--bg);
+  padding: 4px 10px; border-radius: 6px;
+}
+.dev-otp-fill {
+  font: 600 13px 'Space Grotesk', sans-serif;
+  background: var(--ink); color: var(--bg);
+  border: none; padding: 6px 12px; border-radius: 999px;
+  cursor: pointer;
+}
+.dev-otp-fill:hover { background: var(--moss); }

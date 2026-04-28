@@ -10,9 +10,12 @@ import urllib.error
 import urllib.request
 
 
+def current_provider() -> str:
+    return os.environ.get("LEXORA_EMAIL_PROVIDER", "mock").lower()
+
+
 def send_otp(email: str, code: str) -> None:
-    provider = os.environ.get("LEXORA_EMAIL_PROVIDER", "mock").lower()
-    if provider == "resend":
+    if current_provider() == "resend":
         _send_via_resend(email, code)
     else:
         _send_mock(email, code)

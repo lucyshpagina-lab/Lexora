@@ -40,11 +40,24 @@ def test_signup_creates_pending_user(client):
     main_module, c = client
     r = _signup(c)
     assert r.status_code == 200
-    assert r.json()["pending_email"] == "a@b.com"
+    body = r.json()
+    assert body["pending_email"] == "a@b.com"
+    # In mock mode, the dev OTP code is exposed so the local UI can show it.
+    assert "dev_code" in body
+    assert body["dev_code"] == main_module.otp_store.peek("a@b.com")
     user = main_module.user_store.get("a@b.com")
     assert user is not None
     assert user["verified"] == 0
-    assert main_module.otp_store.peek("a@b.com") is not None
+
+
+def test_signup_omits_dev_code_for_real_provider(monkeypatch, client):
+    main_module, c = client
+    monkeypatch.setenv("LEXORA_EMAIL_PROVIDER", "resend")
+    # Don't actually call Resend — patch send_otp to a noop.
+    monkeypatch.setattr(main_module.email_service, "send_otp", lambda *a, **kw: None)
+    r = _signup(c, email="b@b.com")
+    assert r.status_code == 200
+    assert "dev_code" not in r.json()
 
 
 def test_signup_normalises_email_case(client):

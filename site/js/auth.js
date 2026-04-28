@@ -19,6 +19,30 @@
   let pendingEmail = '';
   let pendingPassword = '';
 
+  // Render the dev OTP code returned by the mock email provider so the user
+  // can finish the flow without a real inbox. The banner is only shown when
+  // the backend explicitly returns dev_code (i.e. mock provider).
+  const showDevCode = (code) => {
+    if (!otp || !code) return;
+    let banner = document.getElementById('otp-dev-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'otp-dev-banner';
+      banner.className = 'dev-otp-banner';
+      const slot = otp.querySelector('.alert-slot') || otp.firstElementChild;
+      slot.parentNode.insertBefore(banner, slot.nextSibling);
+    }
+    banner.innerHTML = `
+      <strong>Dev mode</strong>
+      <p>No email provider configured — your code is <code class="dev-otp-code">${code}</code></p>
+      <button type="button" class="dev-otp-fill">Use this code</button>
+    `;
+    banner.querySelector('.dev-otp-fill').addEventListener('click', () => {
+      const input = document.getElementById('otp-code');
+      if (input) { input.value = code; input.focus(); }
+    });
+  };
+
   if (reg) {
     reg.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -36,7 +60,7 @@
       const btn = reg.querySelector('button[type=submit]');
       if (btn) btn.disabled = true;
       try {
-        await Lexora.api('/api/auth/signup', { method: 'POST', body: { email, name, password: pwd } });
+        const out = await Lexora.api('/api/auth/signup', { method: 'POST', body: { email, name, password: pwd } });
         pendingEmail = email;
         pendingPassword = pwd;
         // swap forms
@@ -44,6 +68,7 @@
         otp.classList.remove('hide');
         const slot = document.getElementById('otp-email-slot');
         if (slot) slot.textContent = email;
+        showDevCode(out && out.dev_code);
         document.getElementById('otp-code')?.focus();
       } catch (err) {
         if (err.status === 409) {
@@ -90,11 +115,12 @@
       clearAlert(otp);
       try {
         // signup with the same details re-issues an OTP for unverified accounts.
-        await Lexora.api('/api/auth/signup', {
+        const out = await Lexora.api('/api/auth/signup', {
           method: 'POST',
           body: { email: pendingEmail, name: pendingEmail.split('@')[0], password: pendingPassword },
         });
         showAlert(otp, 'ok', 'A new code has been sent.');
+        showDevCode(out && out.dev_code);
       } catch (err) {
         showAlert(otp, 'err', err.message || 'Could not resend code.');
       }
@@ -104,12 +130,22 @@
   // ============== SIGNIN ==============
   const log = document.getElementById('login-form');
   if (log) {
+    // Pre-fill email + remember-me from the last successful sign-in.
+    const remembered = Lexora.rememberedEmail.get();
+    if (remembered) {
+      const emailInput = log.querySelector('input[name="email"]');
+      const remCheckbox = log.querySelector('input[name="remember"]');
+      if (emailInput && !emailInput.value) emailInput.value = remembered;
+      if (remCheckbox) remCheckbox.checked = true;
+    }
+
     log.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAlert(log);
       const fd = new FormData(log);
       const email = (fd.get('email') || '').toString().trim().toLowerCase();
       const pwd = (fd.get('password') || '').toString();
+      const remember = !!fd.get('remember');
       if (!email || !pwd) return showAlert(log, 'err', 'Email and password are required.');
       const btn = log.querySelector('button[type=submit]');
       if (btn) btn.disabled = true;
@@ -117,8 +153,10 @@
         const out = await Lexora.api('/api/auth/signin', {
           method: 'POST', body: { email, password: pwd },
         });
-        Lexora.token.set(out.token);
-        Lexora.profile.set(out.user);
+        Lexora.token.set(out.token, remember);
+        Lexora.profile.set(out.user, remember);
+        if (remember) Lexora.rememberedEmail.set(email);
+        else Lexora.rememberedEmail.clear();
         showAlert(log, 'ok', 'Signed in. Taking you to your profile…');
         setTimeout(() => location.href = 'profile.html', 400);
       } catch (err) {

@@ -228,7 +228,12 @@ def signup(req: SignupRequest):
         email_service.send_otp(email, code)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Could not send OTP: {e}")
-    return {"pending_email": email, "expires_in": 600}
+    response = {"pending_email": email, "expires_in": 600}
+    # In mock mode (no real email provider), surface the code so the local
+    # dev UI can show it. Never returned when a real provider is configured.
+    if email_service.current_provider() == "mock":
+        response["dev_code"] = code
+    return response
 
 
 @app.post("/api/auth/verify-otp")

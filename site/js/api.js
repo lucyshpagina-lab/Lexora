@@ -13,19 +13,46 @@
 
   const KEY_TOKEN = 'lexora.token';
   const KEY_PROFILE = 'lexora.profile';
+  const KEY_REMEMBER_EMAIL = 'lexora.remember.email';
 
+  // Token + profile persistence honours a "remember me" choice:
+  //   set(t, true)  → localStorage (survives browser restart)
+  //   set(t, false) → sessionStorage (cleared on tab close)
+  // get() checks both, prefers localStorage. clear() wipes both.
   Lexora.token = {
-    get: () => localStorage.getItem(KEY_TOKEN) || null,
-    set: (t) => localStorage.setItem(KEY_TOKEN, t),
-    clear: () => localStorage.removeItem(KEY_TOKEN),
+    get: () => localStorage.getItem(KEY_TOKEN) || sessionStorage.getItem(KEY_TOKEN) || null,
+    set: (t, persistent = true) => {
+      sessionStorage.removeItem(KEY_TOKEN);
+      localStorage.removeItem(KEY_TOKEN);
+      (persistent ? localStorage : sessionStorage).setItem(KEY_TOKEN, t);
+    },
+    clear: () => {
+      localStorage.removeItem(KEY_TOKEN);
+      sessionStorage.removeItem(KEY_TOKEN);
+    },
   };
 
   Lexora.profile = {
     get: () => {
-      try { return JSON.parse(localStorage.getItem(KEY_PROFILE) || 'null'); } catch { return null; }
+      const raw = localStorage.getItem(KEY_PROFILE) || sessionStorage.getItem(KEY_PROFILE);
+      try { return JSON.parse(raw || 'null'); } catch { return null; }
     },
-    set: (p) => localStorage.setItem(KEY_PROFILE, JSON.stringify(p)),
-    clear: () => localStorage.removeItem(KEY_PROFILE),
+    set: (p, persistent = true) => {
+      const raw = JSON.stringify(p);
+      sessionStorage.removeItem(KEY_PROFILE);
+      localStorage.removeItem(KEY_PROFILE);
+      (persistent ? localStorage : sessionStorage).setItem(KEY_PROFILE, raw);
+    },
+    clear: () => {
+      localStorage.removeItem(KEY_PROFILE);
+      sessionStorage.removeItem(KEY_PROFILE);
+    },
+  };
+
+  Lexora.rememberedEmail = {
+    get: () => localStorage.getItem(KEY_REMEMBER_EMAIL) || '',
+    set: (e) => localStorage.setItem(KEY_REMEMBER_EMAIL, e),
+    clear: () => localStorage.removeItem(KEY_REMEMBER_EMAIL),
   };
 
   Lexora.api = async (path, opts = {}) => {
