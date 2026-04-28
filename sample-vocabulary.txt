@@ -1,0 +1,15 @@
+hola - hello
+adiós - goodbye
+gracias - thank you
+por favor - please
+agua - water
+libro - book
+amigo - friend
+tiempo - time
+comida - food
+escuela - school
+trabajo - work
+casa - house
+día - day
+noche - night
+sol - sun

@@ -1,0 +1,16 @@
+# Lexora — robots.txt
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /upload.html
+Disallow: /flashcards.html
+Disallow: /forgot-password.html
+Disallow: /tests/
+
+# search engines: please index everything else
+Allow: /index.html
+Allow: /topics.html
+Allow: /login.html
+Allow: /register.html
+
+Sitemap: https://lexora.app/sitemap.xml

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#EEEFE2"/>
+  <circle cx="980" cy="180" r="200" fill="#C8E26A"/>
+  <circle cx="1100" cy="540" r="180" fill="#A07859"/>
+  <circle cx="220" cy="500" r="120" fill="#264E45"/>
+  <g transform="translate(80, 140)">
+    <text font-family="Fraunces, serif" font-weight="900" font-size="148" fill="#1F3A2C" letter-spacing="-6">Lexora.</text>
+    <text y="100" font-family="Fraunces, serif" font-style="italic" font-size="58" fill="#1F3A2C">vocabulary · grammar · etymology</text>
+    <text y="200" font-family="JetBrains Mono, monospace" font-size="22" fill="#3D5444" letter-spacing="3">A1 — A2 — B1 — B2 — C1 — C2  ·  EN  ·  FR</text>
+  </g>
+</svg>

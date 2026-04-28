@@ -1,0 +1,16 @@
+{
+  "name": "Lexora",
+  "short_name": "Lexora",
+  "description": "Vocabulary, grammar and philology atelier — A1 to C2 in English and French.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#EEEFE2",
+  "theme_color": "#1F3A2C",
+  "icons": [
+    { "src": "assets/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "assets/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "categories": ["education", "books", "productivity"]
+}

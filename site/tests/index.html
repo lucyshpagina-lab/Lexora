@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lexora · unit tests</title>
+<meta name="robots" content="noindex,nofollow"/>
+<style>
+  :root { --bg:#EEEFE2; --ink:#1F3A2C; --moss:#3D5444; --leaf:#C8E26A; --bark:#A07859; --rust:#B33A3A; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--ink); background: var(--bg); padding: 32px; }
+  h1 { font-family: 'Georgia', serif; margin-bottom: 4px; }
+  .lead { color: var(--moss); margin-bottom: 24px; font-size: 14px; }
+  .summary { padding: 16px 20px; border: 1.5px solid var(--ink); border-radius: 14px; margin-bottom: 28px; font-size: 17px; }
+  .summary.ok  { background: var(--leaf); }
+  .summary.err { background: var(--rust); color: var(--bg); }
+  .suite { margin-bottom: 26px; border: 1px solid rgba(31,58,44,0.18); border-radius: 12px; overflow: hidden; background: #fff; }
+  .suite h3 { background: var(--moss); color: var(--bg); padding: 10px 16px; font-size: 14px; letter-spacing: 0.04em; }
+  .suite ul { list-style: none; padding: 4px 0; }
+  .suite li { display: flex; gap: 12px; align-items: flex-start; padding: 7px 16px; border-top: 1px solid rgba(31,58,44,0.08); flex-wrap: wrap; }
+  .suite li:first-child { border-top: 0; }
+  .suite li .badge { font: 600 11px/1.2 ui-monospace, monospace; padding: 3px 7px; border-radius: 4px; flex-shrink: 0; min-width: 44px; text-align: center; }
+  .suite li.pass .badge { background: var(--leaf); color: var(--ink); }
+  .suite li.fail { background: rgba(179,58,58,0.07); }
+  .suite li.fail .badge { background: var(--rust); color: var(--bg); }
+  .suite pre { font: 12px/1.4 ui-monospace, monospace; background: rgba(31,58,44,0.06); padding: 8px 10px; border-radius: 6px; width: 100%; white-space: pre-wrap; word-break: break-word; margin-top: 4px; }
+  .name { flex: 1; }
+  .meta { color: var(--moss); font-size: 13px; margin-bottom: 14px; }
+  code { background: rgba(31,58,44,0.08); padding: 1px 5px; border-radius: 3px; font: 13px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+  <h1>Lexora — unit tests</h1>
+  <p class="lead">Runs entirely in the browser against the same JS the site ships. Reload to re-run.</p>
+  <p class="meta">Suites: <code>parser</code>, <code>hash + validators</code>, <code>storage (deck/stats/prefs)</code>, <code>auth (register/login/reset)</code>, <code>topics + filterTopics</code></p>
+
+  <div id="out"></div>
+
+  <!-- production code under test (lib first so its helpers exist; core overrides a few duplicates) -->
+  <script src="../js/lib.js"></script>
+  <script src="../data/topics.js"></script>
+
+  <!-- snapshot real user storage so tests don't clobber it -->
+  <script>
+    window.__lexoraBackup = {};
+    ['lexora.user', 'lexora.users'].forEach((k) => { window.__lexoraBackup[k] = localStorage.getItem(k); });
+    // Provide the auth helpers that core.js would otherwise define, but without
+    // the side-effects (cursor, dropdown handlers, requireAuth redirects).
+    window.Lexora = window.Lexora || {};
+    Lexora.getUser   = () => { try { return JSON.parse(localStorage.getItem('lexora.user') || 'null'); } catch { return null; } };
+    Lexora.setUser   = (u) => localStorage.setItem('lexora.user', JSON.stringify(u));
+    Lexora.getUsers  = () => { try { return JSON.parse(localStorage.getItem('lexora.users') || '{}'); } catch { return {}; } };
+    Lexora.saveUsers = (u) => localStorage.setItem('lexora.users', JSON.stringify(u));
+  </script>
+
+  <!-- test runner -->
+  <script src="runner.js"></script>
+
+  <!-- specs -->
+  <script src="test-parser.js"></script>
+  <script src="test-hash.js"></script>
+  <script src="test-storage.js"></script>
+  <script src="test-auth.js"></script>
+  <script src="test-topics.js"></script>
+
+  <script>
+    // After all suites have queued their it()s synchronously above, render results.
+    Tests.render(document.getElementById('out'));
+    // Restore real user state — running tests must not log anyone out.
+    Object.entries(window.__lexoraBackup).forEach(([k, v]) => {
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    });
+    // Also surface in console for CI-style consumption
+    console.log(`Lexora tests: ${Tests.results.pass}/${Tests.results.total} passing, ${Tests.results.fail} failing`);
+    if (Tests.results.fail) {
+      console.error(Tests.results.items.filter((r) => r.kind === 'FAIL'));
+    }
+  </script>
+</body>
+</html>
