@@ -239,9 +239,28 @@ def test_upload_avatar(client):
     files = {"file": ("avatar.png", b"\x89PNG fake", "image/png")}
     r = c.post("/api/auth/avatar", headers=headers, files=files)
     assert r.status_code == 200
-    assert r.json()["avatar_path"].endswith(".png")
+    assert r.json()["avatar_url"] == "/api/auth/avatar/a@b.com"
     user = main_module.user_store.get("a@b.com")
-    assert user["avatar_path"] is not None
+    assert user["avatar_path"] is not None  # internal field still set
+    # GET endpoint should now serve the file.
+    g = c.get("/api/auth/avatar/a@b.com")
+    assert g.status_code == 200
+    assert g.content == b"\x89PNG fake"
+
+
+def test_get_avatar_404_when_missing(client):
+    _, c = client
+    r = c.get("/api/auth/avatar/nobody@x.com")
+    assert r.status_code == 404
+
+
+def test_me_returns_avatar_url_when_set(client):
+    main_module, c = client
+    headers = _auth_headers(client, main_module, c)
+    files = {"file": ("avatar.png", b"\x89PNG", "image/png")}
+    c.post("/api/auth/avatar", headers=headers, files=files)
+    me = c.get("/api/auth/me", headers=headers).json()
+    assert me["avatar_url"] == "/api/auth/avatar/a@b.com"
 
 
 def test_upload_avatar_rejects_non_image(client):

@@ -30,8 +30,12 @@ class Orchestrator:
         native_language: str,
         target_language: str,
         source: str,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        user_id = "u_" + secrets.token_urlsafe(8)
+        # Authenticated callers pass a deterministic id (e.g. derived from
+        # their email) so re-uploading replaces the existing deck instead of
+        # creating an orphan session.
+        user_id = user_id or "u_" + secrets.token_urlsafe(8)
         state = {
             "user_id": user_id,
             "native_language": native_language,
@@ -56,22 +60,26 @@ class Orchestrator:
         file_bytes: bytes,
         native_language: str,
         target_language: str,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         self.file_agent.validate_file(filename, len(file_bytes))
         text = self.file_agent.read_local(filename, file_bytes)
         words = self.file_agent.extract_words(text)
-        return self._build_session(words, native_language, target_language, filename)
+        return self._build_session(
+            words, native_language, target_language, filename, user_id=user_id
+        )
 
     def handle_drive_upload(
         self,
         file_id: str,
         native_language: str,
         target_language: str,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         text = self.file_agent.read_pdf_from_drive(file_id)
         words = self.file_agent.extract_words(text)
         return self._build_session(
-            words, native_language, target_language, f"drive:{file_id}"
+            words, native_language, target_language, f"drive:{file_id}", user_id=user_id
         )
 
     _DEMO_PAIRS = [

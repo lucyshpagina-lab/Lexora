@@ -10,6 +10,8 @@
     ? 'http://localhost:8000'
     : '';
   const API_BASE = (typeof window.LEXORA_API === 'string') ? window.LEXORA_API : DEFAULT_API;
+  Lexora.apiBase = API_BASE;
+  Lexora.absoluteApiUrl = (path) => path && path.startsWith('/') ? (API_BASE + path) : path;
 
   const KEY_TOKEN = 'lexora.token';
   const KEY_PROFILE = 'lexora.profile';

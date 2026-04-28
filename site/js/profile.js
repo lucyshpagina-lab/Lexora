@@ -13,11 +13,8 @@
   if (nameSlot) nameSlot.textContent = profile.name || profile.email;
 
   const avatarImg = document.querySelector('[data-profile-avatar]');
-  if (avatarImg) {
-    if (profile.avatar_path) {
-      // Backend returns a server-side path — surface as best-effort image.
-      avatarImg.src = profile.avatar_path;
-    }
+  if (avatarImg && profile.avatar_url) {
+    avatarImg.src = Lexora.absoluteApiUrl(profile.avatar_url);
   }
 
   // dropdown toggle
@@ -59,9 +56,12 @@
     fd.append('file', file);
     try {
       const out = await Lexora.api('/api/auth/avatar', { method: 'POST', body: fd });
-      profile.avatar_path = out.avatar_path;
+      profile.avatar_url = out.avatar_url;
       Lexora.profile.set(profile);
-      if (avatarImg) avatarImg.src = out.avatar_path;
+      if (avatarImg) {
+        // Cache-bust so the new image is fetched even though the URL didn't change.
+        avatarImg.src = Lexora.absoluteApiUrl(out.avatar_url) + '?v=' + Date.now();
+      }
       showToast('ok', 'Avatar updated.');
     } catch (err) {
       showToast('err', err.message || 'Could not upload avatar.');
@@ -214,7 +214,10 @@
     fd.append('target_language', currentLang || 'Spanish');
     try {
       const out = await Lexora.api('/api/upload', { method: 'POST', body: fd });
-      showStatus('ok', `Loaded <strong>${out.total}</strong> word${out.total === 1 ? '' : 's'} from your vocabulary.`);
+      // Persist the deck session id so future "continue learning" calls work.
+      profile.session_id = out.user_id;
+      Lexora.profile.set(profile);
+      showStatus('ok', `Loaded <strong>${out.total}</strong> word${out.total === 1 ? '' : 's'} from your vocabulary. Ready to study.`);
     } catch (err) {
       showStatus('err', err.message || 'Could not upload file.');
     }

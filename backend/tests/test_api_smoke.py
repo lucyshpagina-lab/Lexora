@@ -93,7 +93,26 @@ def test_upload_endpoint(client, monkeypatch):
     files = {"file": ("words.pdf", b"%PDF-1.4 stub", "application/pdf")}
     r = client.post("/api/upload", files=files, data={"native_language": "English", "target_language": "Spanish"})
     assert r.status_code == 200
-    assert r.json()["total"] == 3
+    body = r.json()
+    assert body["total"] == 3
+    assert body["user_id"].startswith("u_")  # anonymous → random id
+
+
+def test_upload_with_auth_uses_deterministic_id(client, monkeypatch):
+    """Re-uploading with the same JWT replaces the same session, not a new one."""
+    import hashlib
+    import main as main_module
+    text = "uno - one\ndos - two\ntres - three"
+    monkeypatch.setattr(main_module.orchestrator.file_agent, "read_pdf_local", lambda b: text)
+    token = main_module.auth_service.issue_jwt("authed@x.com")
+    expected_id = "u_" + hashlib.sha256(b"authed@x.com").hexdigest()[:16]
+    headers = {"Authorization": f"Bearer {token}"}
+    files = {"file": ("words.pdf", b"%PDF-1.4", "application/pdf")}
+    r1 = client.post("/api/upload", files=files, headers=headers, data={"native_language": "English", "target_language": "Spanish"})
+    assert r1.json()["user_id"] == expected_id
+    # Second upload — same id, content replaces.
+    r2 = client.post("/api/upload", files=files, headers=headers, data={"native_language": "English", "target_language": "Spanish"})
+    assert r2.json()["user_id"] == expected_id
 
 
 def test_upload_rejects_txt(client):

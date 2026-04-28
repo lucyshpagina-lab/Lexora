@@ -1,5 +1,6 @@
 """Lexora FastAPI app — all HTTP routing lives here. Logic stays in agents/."""
 
+import hashlib
 import json
 import os
 import re
@@ -7,8 +8,9 @@ import secrets
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from agents.orchestrator import Orchestrator
@@ -42,11 +44,12 @@ def _generate_otp_code() -> str:
 
 
 def _public_user(user: dict) -> dict:
+    has_avatar = bool(user.get("avatar_path"))
     return {
         "email": user["email"],
         "name": user["name"],
         "verified": bool(user["verified"]),
-        "avatar_path": user["avatar_path"],
+        "avatar_url": f"/api/auth/avatar/{user['email']}" if has_avatar else None,
         "preferred_language": user["preferred_language"],
         "custom_languages": json.loads(user["custom_languages"] or "[]"),
     }
@@ -85,16 +88,34 @@ def health():
     return {"ok": True, "llm_live": orchestrator.llm.is_live}
 
 
+def _session_id_for_email(email: str) -> str:
+    return "u_" + hashlib.sha256(email.encode("utf-8")).hexdigest()[:16]
+
+
+def _maybe_email(authorization: Optional[str]) -> Optional[str]:
+    """Soft auth — return email if a valid bearer token is present, else None."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    return auth_service.verify_jwt(authorization[7:].strip())
+
+
 @app.post("/api/upload")
 async def upload(
     file: UploadFile = File(...),
     native_language: str = Form("English"),
     target_language: str = Form("Spanish"),
+    authorization: Optional[str] = Header(None),
 ):
+    email = _maybe_email(authorization)
+    user_id = _session_id_for_email(email) if email else None
     contents = await file.read()
     try:
         return orchestrator.handle_upload(
-            file.filename or "upload", contents, native_language, target_language
+            file.filename or "upload",
+            contents,
+            native_language,
+            target_language,
+            user_id=user_id,
         )
     except FileValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -289,6 +310,23 @@ def delete_account(email: str = Depends(auth_service.get_current_user_email)):
     return {"ok": True}
 
 
+@app.get("/api/auth/avatar/{email}")
+def get_avatar(email: str):
+    """Public — returns the user's avatar file by email.
+
+    Avatars are not secret (any logged-in user could fetch them anyway via
+    /api/auth/me from a session impersonating others). This endpoint exists
+    so the frontend can simply use <img src=...>.
+    """
+    safe = "".join(ch for ch in email if ch.isalnum() or ch in "-_.@") or "anon"
+    avatars_dir = Path(os.environ.get("LEXORA_AVATARS_DIR", "./data/avatars"))
+    for ext in ("png", "jpg", "svg", "webp"):
+        path = avatars_dir / f"{safe}.{ext}"
+        if path.exists():
+            return FileResponse(path)
+    raise HTTPException(status_code=404, detail="No avatar.")
+
+
 @app.post("/api/auth/avatar")
 async def upload_avatar(
     file: UploadFile = File(...),
@@ -317,7 +355,7 @@ async def upload_avatar(
     path = avatars_dir / f"{safe}.{ext}"
     path.write_bytes(content)
     user_store.set_avatar(email, str(path))
-    return {"avatar_path": str(path)}
+    return {"avatar_url": f"/api/auth/avatar/{email}"}
 
 
 @app.post("/api/auth/language")
