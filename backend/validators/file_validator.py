@@ -3,7 +3,7 @@
 from pathlib import Path
 
 
-ALLOWED_EXTENSIONS = {".pdf", ".txt"}
+ALLOWED_EXTENSIONS = {".pdf"}
 MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 

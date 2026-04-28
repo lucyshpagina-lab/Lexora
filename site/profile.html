@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Profile · Lexora</title>
+<meta name="description" content="Pick your language, upload your vocabulary, and let Lexora's atelier do the rest."/>
+<meta name="robots" content="noindex,follow"/>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav__inner">
+    <a href="index.html" class="logo" aria-label="Lexora home">
+      <svg class="logo__mark" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="29" fill="#1F3A2C"/>
+        <circle cx="32" cy="32" r="29" fill="none" stroke="#C8E26A" stroke-width="2"/>
+        <path d="M20 16 L20 44 L31 44" fill="none" stroke="#EEEFE2" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M28 22 L44 44" stroke="#C8E26A" stroke-width="3.6" stroke-linecap="round"/>
+        <path d="M44 22 L28 44" stroke="#A07859" stroke-width="3.6" stroke-linecap="round"/>
+      </svg>
+      <span class="logo__word">Le<span class="x">x</span>ora</span>
+    </a>
+
+    <div class="nav__cta">
+      <!-- profile-menu: avatar trigger + dropdown of 5 actions -->
+      <div class="profile-menu">
+        <button type="button" class="profile-menu__trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Profile menu">
+          <span class="profile-name" data-profile-name>Profile</span>
+          <span class="profile-avatar">
+            <img data-profile-avatar alt="" src="assets/favicon.svg"/>
+          </span>
+        </button>
+        <ul class="profile-menu__panel" role="menu">
+          <li role="none"><a role="menuitem" href="#" data-action="upload-avatar"><span class="dot dot--leaf"></span> Upload avatar</a></li>
+          <li role="none"><a role="menuitem" href="#" data-action="continue"><span class="dot dot--clay"></span> Continue learning</a></li>
+          <li role="none"><a role="menuitem" href="#" data-action="change-password"><span class="dot dot--ink"></span> Change password</a></li>
+          <li role="none"><a role="menuitem" href="#" data-action="delete-account"><span class="dot dot--rust"></span> Delete account</a></li>
+          <li role="separator" class="profile-menu__sep"></li>
+          <li role="none"><a role="menuitem" href="#" data-action="signout"><span class="dot dot--moss"></span> Sign out</a></li>
+        </ul>
+        <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden/>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container profile-page">
+
+  <!-- Greeting with druid/leaf garland -->
+  <section class="hello-row">
+    <span class="hello-leaf hello-leaf--l1" aria-hidden="true">🌿</span>
+    <span class="hello-leaf hello-leaf--l2" aria-hidden="true">🍃</span>
+    <span class="hello-druid" aria-hidden="true">
+      <svg viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="30" cy="65" rx="18" ry="2" fill="#1F3A2C" opacity="0.25"/>
+        <path d="M14 56 L 10 68 L 50 68 L 46 56 Q 42 34 30 32 Q 18 34 14 56 Z"
+              fill="#1A0E08" stroke="#C8E26A" stroke-width="0.85"/>
+        <ellipse cx="30" cy="34" rx="14" ry="11" fill="#1A0E08" stroke="#C8E26A" stroke-width="0.85"/>
+        <ellipse cx="30" cy="38" rx="6" ry="9" fill="#000"/>
+        <circle cx="26" cy="38" r="1.4" fill="#C8E26A"/>
+        <circle cx="34" cy="38" r="1.4" fill="#C8E26A"/>
+        <circle cx="26" cy="38" r="3" fill="#C8E26A" opacity="0.35"/>
+        <circle cx="34" cy="38" r="3" fill="#C8E26A" opacity="0.35"/>
+        <path d="M22 30 Q 18 18 30 14 Q 42 18 38 30" fill="none" stroke="#A07859" stroke-width="1.2"/>
+        <circle cx="22" cy="22" r="2" fill="#C8E26A" opacity="0.7"/>
+        <circle cx="38" cy="22" r="2" fill="#C8E26A" opacity="0.7"/>
+      </svg>
+    </span>
+    <h1 class="hello-text">
+      Hello, <span class="hello-name" data-profile-name>traveller</span>.
+    </h1>
+    <span class="hello-leaf hello-leaf--r1" aria-hidden="true">🍃</span>
+    <span class="hello-leaf hello-leaf--r2" aria-hidden="true">🌿</span>
+  </section>
+
+  <!-- Language picker -->
+  <section class="language-picker">
+    <p class="eyebrow center">Step 1 · Choose your tongue</p>
+    <div class="language-dropdown" id="language-dropdown">
+      <button type="button" class="language-button" id="language-button" aria-haspopup="listbox" aria-expanded="false">
+        <span class="language-leaf" aria-hidden="true">🌿</span>
+        <span id="language-current">Pick your language</span>
+        <span class="language-caret" aria-hidden="true">▾</span>
+      </button>
+      <ul class="language-list" id="language-list" role="listbox"></ul>
+    </div>
+  </section>
+
+  <!-- Vocabulary upload — appears after a language is picked -->
+  <section class="vocab-section hide" id="vocab-section">
+    <div class="vocab-card">
+      <span class="vocab-leaf vocab-leaf--tl" aria-hidden="true">🌿</span>
+      <span class="vocab-leaf vocab-leaf--tr" aria-hidden="true">🍃</span>
+      <span class="vocab-leaf vocab-leaf--bl" aria-hidden="true">🍃</span>
+      <span class="vocab-leaf vocab-leaf--br" aria-hidden="true">🌿</span>
+
+      <p class="eyebrow">Step 2 · My vocabulary</p>
+      <h2>Bring your scrolls.</h2>
+      <p class="lead">Upload <code>myvocabulary.pdf</code>. Only PDF files are accepted.</p>
+
+      <div class="vocab-options">
+        <div class="vocab-drop" id="vocab-drop" tabindex="0" role="button" aria-label="Upload PDF from your computer">
+          <span class="vocab-drop__icon" aria-hidden="true">📄</span>
+          <strong>Upload from computer</strong>
+          <span class="muted">PDF only · drag &amp; drop or click</span>
+        </div>
+
+        <button type="button" class="vocab-drive" id="vocab-drive">
+          <span class="vocab-drive__icon" aria-hidden="true">☁️</span>
+          <strong>Google Drive</strong>
+          <span class="muted">scoped to <code>myvocabulary.pdf</code></span>
+        </button>
+      </div>
+
+      <input type="file" id="vocab-file" accept="application/pdf,.pdf" hidden/>
+      <div id="vocab-status" class="vocab-status"></div>
+    </div>
+  </section>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/core.js"></script>
+<script src="js/profile.js"></script>
+</body>
+</html>

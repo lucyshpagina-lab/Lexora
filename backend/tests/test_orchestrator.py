@@ -118,12 +118,21 @@ def test_previous_card_decrements(orch):
     assert card["index"] == 0
 
 
-def test_handle_upload_extracts_words(orch):
+def test_handle_upload_extracts_words(orch, monkeypatch):
     text = "uno - one\ndos - two\ntres - three"
-    out = orch.handle_upload("words.txt", text.encode("utf-8"), "English", "Spanish")
+    # Bypass real PDF parsing — we already test extract_words separately.
+    monkeypatch.setattr(orch.file_agent, "read_pdf_local", lambda b: text)
+    out = orch.handle_upload("words.pdf", b"%PDF-1.4 stub", "English", "Spanish")
     assert out["total"] == 3
     state = orch.storage.load(out["user_id"])
     assert [v["word"] for v in state["vocabulary"]] == ["uno", "dos", "tres"]
+
+
+def test_handle_upload_rejects_txt(orch):
+    import pytest
+    from validators.file_validator import FileValidationError
+    with pytest.raises(FileValidationError, match="Unsupported"):
+        orch.handle_upload("words.txt", b"uno - one", "English", "Spanish")
 
 
 def test_review_does_one_load_and_one_save(orch):

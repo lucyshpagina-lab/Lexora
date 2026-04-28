@@ -60,17 +60,12 @@ def test_extract_words_no_matches_raises(agent):
         agent.extract_words("just some prose without any separators here")
 
 
-def test_read_text_local_utf8(agent):
-    assert agent.read_text_local("hola - hello".encode("utf-8")) == "hola - hello"
-
-
-def test_read_text_local_latin1_fallback(agent):
-    # 'ñ' as latin-1 is 0xF1 — invalid utf-8 standalone.
-    raw = "espa\xf1ol".encode("latin-1")
-    out = agent.read_text_local(raw)
-    assert "ñ" in out or "español" in out  # decoded somehow without raising
-
-
 def test_read_local_unsupported_extension(agent):
     with pytest.raises(FileValidationError, match="Unsupported"):
         agent.read_local("file.docx", b"x")
+
+
+def test_read_local_rejects_txt(agent):
+    # .txt is no longer a supported source format (PDF only).
+    with pytest.raises(FileValidationError, match="Unsupported"):
+        agent.read_local("file.txt", b"hola - hello")

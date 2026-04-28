@@ -11,8 +11,13 @@ def test_accepts_pdf():
     assert validate_file("doc.pdf", 1024) == ".pdf"
 
 
-def test_accepts_txt_case_insensitive():
-    assert validate_file("notes.TXT", 1024) == ".txt"
+def test_accepts_pdf_case_insensitive():
+    assert validate_file("notes.PDF", 1024) == ".pdf"
+
+
+def test_rejects_txt():
+    with pytest.raises(FileValidationError, match="Unsupported file type"):
+        validate_file("notes.txt", 1024)
 
 
 def test_rejects_missing_filename():
@@ -27,9 +32,9 @@ def test_rejects_unsupported_extension():
 
 def test_rejects_empty_file():
     with pytest.raises(FileValidationError, match="empty"):
-        validate_file("a.txt", 0)
+        validate_file("a.pdf", 0)
 
 
 def test_rejects_oversized_file():
     with pytest.raises(FileValidationError, match="too large"):
-        validate_file("a.txt", MAX_SIZE_BYTES + 1)
+        validate_file("a.pdf", MAX_SIZE_BYTES + 1)

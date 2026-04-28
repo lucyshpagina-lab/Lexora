@@ -35,14 +35,6 @@ class FileAgent:
             pages.append(txt)
         return "\n".join(pages)
 
-    def read_text_local(self, file_bytes: bytes) -> str:
-        for encoding in ("utf-8", "utf-16", "latin-1"):
-            try:
-                return file_bytes.decode(encoding)
-            except UnicodeDecodeError:
-                continue
-        raise FileValidationError("Could not decode text file.")
-
     def read_pdf_from_drive(self, file_id: str) -> str:
         """MCP integration point for Google Drive.
 
@@ -98,8 +90,6 @@ class FileAgent:
         ext = Path(filename).suffix.lower()
         if ext == ".pdf":
             return self.read_pdf_local(file_bytes)
-        if ext == ".txt":
-            return self.read_text_local(file_bytes)
         raise FileValidationError(f"Unsupported extension: {ext}")
 
     # -- Vocabulary extraction ---------------------------------------------

@@ -27,10 +27,7 @@
     </a>
 
     <nav class="nav__links" aria-label="Primary" data-auth-only>
-      <a href="dashboard.html">Dashboard</a>
-      <a href="topics.html">Topics</a>
-      <a href="upload.html">Upload</a>
-      <a href="flashcards.html">Study</a>
+      <a href="profile.html">Profile</a>
     </nav>
 
     <div class="nav__cta">
@@ -67,7 +64,7 @@
           </svg>
         </button>
         <ul class="auth-menu__panel" role="menu">
-          <li><a href="login.html" role="menuitem">Sign in</a></li>
+          <li><a href="signin.html" role="menuitem">Sign in</a></li>
           <li><a href="register.html" role="menuitem">Sign up</a></li>
         </ul>
       </div>
@@ -130,7 +127,9 @@
   </aside>
 
   <section class="auth-shell__form-wrap">
+    <!-- Step 1 of 2: account details -->
     <form id="register-form" class="auth-form" novalidate>
+      <p class="eyebrow">Step 1 of 2</p>
       <h1>Create your atelier.</h1>
       <p class="lead">The druid offers a small key. Step into the grove and your scrolls will live with you, safely.</p>
 
@@ -156,11 +155,32 @@
         <input id="confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required/>
       </div>
 
-      <button class="btn btn--primary btn--block btn--lg" type="submit" style="margin-top: 8px;">Create account →</button>
+      <button class="btn btn--primary btn--block btn--lg" type="submit" style="margin-top: 8px;">Send confirmation code →</button>
+    </form>
+
+    <!-- Step 2 of 2: OTP confirmation (revealed after signup succeeds) -->
+    <form id="otp-form" class="auth-form hide" novalidate>
+      <p class="eyebrow">Step 2 of 2</p>
+      <h1>Confirm your email.</h1>
+      <p class="lead">We just sent a 6-digit code to <code id="otp-email-slot"></code>. Enter it below.</p>
+
+      <div class="alert-slot"></div>
+
+      <div class="field">
+        <label for="otp-code">Confirmation code</label>
+        <input id="otp-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required/>
+      </div>
+
+      <button class="btn btn--primary btn--block btn--lg" type="submit">Confirm and enter →</button>
+
+      <p class="auth-form__foot">
+        Didn’t get a code? <a href="#" id="otp-resend">Send again</a>
+      </p>
     </form>
   </section>
 </main>
 
+<script src="js/api.js"></script>
 <script src="js/core.js"></script>
 <script src="js/auth.js"></script>
 </body>

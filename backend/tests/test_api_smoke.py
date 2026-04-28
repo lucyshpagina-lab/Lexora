@@ -86,11 +86,20 @@ def test_progress_endpoint(client):
     assert body["current"] == 0
 
 
-def test_upload_endpoint(client):
-    files = {"file": ("words.txt", b"uno - one\ndos - two\ntres - three", "text/plain")}
+def test_upload_endpoint(client, monkeypatch):
+    import main as main_module
+    text = "uno - one\ndos - two\ntres - three"
+    monkeypatch.setattr(main_module.orchestrator.file_agent, "read_pdf_local", lambda b: text)
+    files = {"file": ("words.pdf", b"%PDF-1.4 stub", "application/pdf")}
     r = client.post("/api/upload", files=files, data={"native_language": "English", "target_language": "Spanish"})
     assert r.status_code == 200
     assert r.json()["total"] == 3
+
+
+def test_upload_rejects_txt(client):
+    files = {"file": ("words.txt", b"uno - one", "text/plain")}
+    r = client.post("/api/upload", files=files)
+    assert r.status_code == 400
 
 
 def test_upload_rejects_bad_extension(client):

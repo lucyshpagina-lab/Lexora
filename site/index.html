@@ -56,9 +56,8 @@
       "inLanguage": ["en", "fr"],
       "publisher": { "@id": "https://lexora.app/#org" },
       "potentialAction": {
-        "@type": "SearchAction",
-        "target": { "@type": "EntryPoint", "urlTemplate": "https://lexora.app/topics.html?q={search_term_string}" },
-        "query-input": "required name=search_term_string"
+        "@type": "ViewAction",
+        "target": "https://lexora.app/profile.html"
       }
     },
     {
@@ -100,7 +99,7 @@
       "provider": { "@id": "https://lexora.app/#org" },
       "inLanguage": "en",
       "educationalLevel": ["A1", "A2", "B1", "B2", "C1", "C2"],
-      "url": "https://lexora.app/topics.html?lang=en",
+      "url": "https://lexora.app/",
       "hasCourseInstance": {
         "@type": "CourseInstance",
         "courseMode": "online",
@@ -115,7 +114,7 @@
       "provider": { "@id": "https://lexora.app/#org" },
       "inLanguage": "fr",
       "educationalLevel": ["A1", "A2", "B1", "B2", "C1", "C2"],
-      "url": "https://lexora.app/topics.html?lang=fr",
+      "url": "https://lexora.app/?lang=fr",
       "hasCourseInstance": {
         "@type": "CourseInstance",
         "courseMode": "online",
@@ -599,10 +598,7 @@
     </a>
 
     <nav class="nav__links" aria-label="Primary" data-auth-only>
-      <a href="dashboard.html">Dashboard</a>
-      <a href="topics.html">Topics</a>
-      <a href="upload.html">Upload</a>
-      <a href="flashcards.html">Study</a>
+      <a href="profile.html">Profile</a>
     </nav>
 
     <div class="nav__cta">
@@ -639,7 +635,7 @@
           </svg>
         </button>
         <ul class="auth-menu__panel" role="menu">
-          <li><a href="login.html" role="menuitem">Sign in</a></li>
+          <li><a href="signin.html" role="menuitem">Sign in</a></li>
           <li><a href="register.html" role="menuitem">Sign up</a></li>
         </ul>
       </div>

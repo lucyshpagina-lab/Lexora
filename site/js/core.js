@@ -91,7 +91,7 @@
     try { return JSON.parse(localStorage.getItem(KEY_USER) || 'null'); } catch { return null; }
   };
   Lexora.setUser = (u) => { localStorage.setItem(KEY_USER, JSON.stringify(u)); };
-  Lexora.logout = () => { localStorage.removeItem(KEY_USER); location.href = 'login.html'; };
+  Lexora.logout = () => { localStorage.removeItem(KEY_USER); location.href = 'signin.html'; };
 
   Lexora.getUsers = () => {
     try { return JSON.parse(localStorage.getItem(KEY_USERS) || '{}'); } catch { return {}; }
@@ -106,7 +106,7 @@
 
   Lexora.requireAuth = () => {
     const u = Lexora.getUser();
-    if (!u) { location.href = 'login.html'; return null; }
+    if (!u) { location.href = 'signin.html'; return null; }
     return u;
   };
 
