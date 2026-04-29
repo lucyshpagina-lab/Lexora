@@ -128,15 +128,42 @@ def test_upload_rejects_bad_extension(client):
     assert r.status_code == 400
 
 
-def test_upload_drive_without_mcp_returns_400(client, monkeypatch):
-    """Without LEXORA_DRIVE_MCP_CMD the Drive endpoint must fail clearly."""
+def test_upload_drive_without_mcp_falls_back_to_public(client, monkeypatch):
+    """Without LEXORA_DRIVE_MCP_CMD the Drive endpoint falls back to public download."""
+    import main as main_module
     monkeypatch.delenv("LEXORA_DRIVE_MCP_CMD", raising=False)
+    monkeypatch.setattr(
+        main_module.orchestrator.file_agent, "_fetch_public_drive_pdf",
+        lambda fid: b"%PDF-1.4 fake-bytes",
+    )
+    monkeypatch.setattr(
+        main_module.orchestrator.file_agent, "read_pdf_local",
+        lambda b: "voiture - car\nfleur - flower",
+    )
+    r = client.post(
+        "/api/upload/drive",
+        json={"file_id": "abc123ABC_xyz", "native_language": "English", "target_language": "French"},
+    )
+    assert r.status_code == 200
+    assert r.json()["total"] == 2
+
+
+def test_upload_drive_public_failure_returns_400(client, monkeypatch):
+    """When the public download fails (e.g. file not shared), surface 400."""
+    import main as main_module
+    from validators.file_validator import FileValidationError
+    monkeypatch.delenv("LEXORA_DRIVE_MCP_CMD", raising=False)
+    def _boom(fid):
+        raise FileValidationError("Google returned an HTML page instead of a PDF.")
+    monkeypatch.setattr(
+        main_module.orchestrator.file_agent, "_fetch_public_drive_pdf", _boom,
+    )
     r = client.post(
         "/api/upload/drive",
         json={"file_id": "abc123ABC_xyz", "native_language": "English", "target_language": "French"},
     )
     assert r.status_code == 400
-    assert "MCP" in r.json()["detail"]
+    assert "HTML" in r.json()["detail"]
 
 
 def test_upload_drive_with_mock_returns_session(client, monkeypatch):

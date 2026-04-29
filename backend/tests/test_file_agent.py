@@ -102,3 +102,74 @@ def test_read_local_rejects_txt(agent):
     # .txt is no longer a supported source format (PDF only).
     with pytest.raises(FileValidationError, match="Unsupported"):
         agent.read_local("file.txt", b"hola - hello")
+
+
+# -- Drive: public-link fallback ------------------------------------------
+
+
+class _FakeResp:
+    """Minimal stand-in for urllib.request.urlopen's context manager result."""
+
+    def __init__(self, body: bytes):
+        self._body = body
+
+    def read(self, _n):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return None
+
+
+def _patch_urlopen(monkeypatch, body: bytes):
+    import urllib.request
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout: _FakeResp(body))
+
+
+def test_fetch_public_drive_pdf_returns_bytes(agent, monkeypatch):
+    pdf = b"%PDF-1.4 fake content"
+    _patch_urlopen(monkeypatch, pdf)
+    assert agent._fetch_public_drive_pdf("abc123ABC_xyz") == pdf
+
+
+def test_fetch_public_drive_html_raises_with_sharing_hint(agent, monkeypatch):
+    """If Google returns HTML, the error must mention the sharing requirement."""
+    _patch_urlopen(monkeypatch, b"<!DOCTYPE html><html><body>Permission denied</body></html>")
+    with pytest.raises(FileValidationError, match="Anyone with the link"):
+        agent._fetch_public_drive_pdf("abc123ABC_xyz")
+
+
+def test_fetch_public_drive_non_pdf_raises(agent, monkeypatch):
+    _patch_urlopen(monkeypatch, b"GIF89a\x00\x00")
+    with pytest.raises(FileValidationError, match="non-PDF"):
+        agent._fetch_public_drive_pdf("abc123ABC_xyz")
+
+
+def test_fetch_public_drive_http_error_raises(agent, monkeypatch):
+    import urllib.error, urllib.request
+    def _raise(req, timeout):
+        raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, None)
+    monkeypatch.setattr(urllib.request, "urlopen", _raise)
+    with pytest.raises(FileValidationError, match="HTTP 404"):
+        agent._fetch_public_drive_pdf("abc123ABC_xyz")
+
+
+def test_read_pdf_from_drive_uses_public_when_no_mcp(agent, monkeypatch):
+    monkeypatch.delenv("LEXORA_DRIVE_MCP_CMD", raising=False)
+    monkeypatch.setattr(agent, "_fetch_public_drive_pdf", lambda fid: b"%PDF-1.4")
+    monkeypatch.setattr(agent, "read_pdf_local", lambda b: "voiture - car")
+    assert agent.read_pdf_from_drive("abc123ABC_xyz") == "voiture - car"
+
+
+def test_read_pdf_from_drive_rejects_invalid_id(agent, monkeypatch):
+    monkeypatch.delenv("LEXORA_DRIVE_MCP_CMD", raising=False)
+    with pytest.raises(FileValidationError, match="Invalid"):
+        agent.read_pdf_from_drive("abc;rm -rf /")
+
+
+def test_read_pdf_from_drive_rejects_empty_id(agent, monkeypatch):
+    monkeypatch.delenv("LEXORA_DRIVE_MCP_CMD", raising=False)
+    with pytest.raises(FileValidationError, match="Missing"):
+        agent.read_pdf_from_drive("   ")

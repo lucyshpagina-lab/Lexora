@@ -290,18 +290,28 @@
     e.preventDefault();
     const result = await Lexora.promptModal({
       title: 'Read from Google Drive',
-      message: 'Paste the Drive file ID of your my_vocabulary.pdf. ' +
-               'You can find it in the share URL after /d/.',
+      message:
+        'Paste the share URL or file ID of your PDF. The file must be ' +
+        'shared as "Anyone with the link can view" (right-click in Drive → ' +
+        'Share → General access → Anyone with the link).',
       fields: [{
-        name: 'file_id', label: 'Drive file ID',
-        placeholder: 'e.g. 1A2b3C4d5E6f7G8h9I0jK', minLength: 8,
+        name: 'file_id', label: 'Drive file URL or ID',
+        placeholder: 'https://drive.google.com/file/d/1A2b… or 1A2b…',
+        minLength: 8,
       }],
       confirmLabel: 'Fetch from Drive',
     });
     if (!result) return;
-    const fileId = (result.file_id || '').trim();
-    if (!fileId) return;
-    showStatus('ok', `Asking the Drive MCP server for <code>${escapeHtml(fileId)}</code>…`);
+    const raw = (result.file_id || '').trim();
+    if (!raw) return;
+    // Accept either a full Drive URL (.../d/<id>/...) or a bare id.
+    const m = raw.match(/[-\w]{20,}/);
+    const fileId = m ? m[0] : raw;
+    if (!/^[-\w]+$/.test(fileId)) {
+      showStatus('err', 'That does not look like a Drive file ID.');
+      return;
+    }
+    showStatus('ok', `Fetching <code>${escapeHtml(fileId)}</code> from Google Drive…`);
     try {
       const out = await Lexora.api('/api/upload/drive', {
         method: 'POST',
