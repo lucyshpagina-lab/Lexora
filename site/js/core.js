@@ -44,10 +44,11 @@
     tick();
 
     const hoverSel = 'a, button, .btn, .chip, .feature, .topic-card, .level, .uploader, .flashcard, input, textarea, select, [data-magnetic]';
+    const textSel = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, summary, label, code, em, strong, dd, dt, figcaption, input, textarea, [contenteditable]';
     document.addEventListener('mouseover', (e) => {
       const target = e.target.closest(hoverSel);
-      const isText = e.target.closest('input, textarea, [contenteditable]');
-      bug.classList.toggle('is-over', !!target && !isText);
+      const isText = e.target.closest(textSel) && !target;
+      bug.classList.toggle('is-over', !!target);
       bug.classList.toggle('is-text', !!isText);
     });
   }
@@ -91,7 +92,11 @@
     try { return JSON.parse(localStorage.getItem(KEY_USER) || 'null'); } catch { return null; }
   };
   Lexora.setUser = (u) => { localStorage.setItem(KEY_USER, JSON.stringify(u)); };
-  Lexora.logout = () => { localStorage.removeItem(KEY_USER); location.href = 'signin.html'; };
+  Lexora.logout = () => {
+    localStorage.removeItem(KEY_USER);
+    if (Lexora.signOut) { Lexora.signOut(); return; }
+    location.href = 'signin.html';
+  };
 
   Lexora.getUsers = () => {
     try { return JSON.parse(localStorage.getItem(KEY_USERS) || '{}'); } catch { return {}; }
@@ -110,16 +115,19 @@
     return u;
   };
 
-  // protect/decorate authenticated nav
+  // protect/decorate authenticated nav — accept either the legacy lexora.user
+  // key (Lexora.getUser) or the api.js-managed profile (Lexora.profile.get).
+  const isLoggedIn = () => Boolean(Lexora.getUser() || (Lexora.profile && Lexora.profile.get && Lexora.profile.get()));
+  const currentUser = () => Lexora.getUser() || (Lexora.profile && Lexora.profile.get && Lexora.profile.get()) || null;
   document.querySelectorAll('[data-auth-only]').forEach((el) => {
-    if (!Lexora.getUser()) el.classList.add('hide');
+    if (!isLoggedIn()) el.classList.add('hide');
   });
   document.querySelectorAll('[data-anon-only]').forEach((el) => {
-    if (Lexora.getUser()) el.classList.add('hide');
+    if (isLoggedIn()) el.classList.add('hide');
   });
   const slot = document.querySelector('[data-username]');
   if (slot) {
-    const u = Lexora.getUser();
+    const u = currentUser();
     if (u) slot.textContent = u.name || u.email;
   }
 
@@ -169,6 +177,102 @@
     const onChange = (ev) => { if (ev.matches) close(); };
     if (mq.addEventListener) mq.addEventListener('change', onChange); else mq.addListener(onChange);
   })();
+
+  // ============== site-style modals (alert / confirm / prompt) ==============
+  const _esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function _buildModal({ title, message, fields, kind, danger, confirmLabel, cancelLabel, withCancel }) {
+    const overlay = document.createElement('div');
+    overlay.className = 'lex-modal__overlay';
+    const fieldsHtml = (fields || []).map((f) => `
+      <label class="lex-modal__field">
+        <span>${_esc(f.label || f.name)}</span>
+        <input type="${_esc(f.type || 'text')}" name="${_esc(f.name)}" placeholder="${_esc(f.placeholder || '')}" autocomplete="${_esc(f.autocomplete || 'off')}"/>
+      </label>
+    `).join('');
+    overlay.innerHTML = `
+      <div class="lex-modal" role="dialog" aria-modal="true">
+        <div class="lex-modal__leaves" aria-hidden="true">
+          <span class="lex-modal__leaf lex-modal__leaf--tl">🌿</span>
+          <span class="lex-modal__leaf lex-modal__leaf--tr">🍃</span>
+          <span class="lex-modal__leaf lex-modal__leaf--bl">🍃</span>
+          <span class="lex-modal__leaf lex-modal__leaf--br">🌿</span>
+        </div>
+        <h3 class="lex-modal__title">${_esc(title || '')}</h3>
+        <div class="lex-modal__body">
+          ${message ? `<p>${_esc(message)}</p>` : ''}
+          ${fieldsHtml}
+        </div>
+        <div class="lex-modal__error" role="alert" hidden></div>
+        <div class="lex-modal__actions">
+          ${withCancel ? `<button type="button" class="lex-modal__btn lex-modal__btn--ghost" data-act="cancel">${_esc(cancelLabel || 'Cancel')}</button>` : ''}
+          <button type="button" class="lex-modal__btn lex-modal__btn--${danger ? 'danger' : (kind === 'danger' ? 'danger' : 'primary')}" data-act="ok">${_esc(confirmLabel || 'OK')}</button>
+        </div>
+      </div>
+    `;
+    return overlay;
+  }
+
+  function _openModal(overlay) {
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('is-open'));
+  }
+  function _closeModal(overlay) {
+    overlay.classList.remove('is-open');
+    setTimeout(() => overlay.remove(), 180);
+  }
+
+  Lexora.alertModal = ({ title = 'Notice', message = '', confirmLabel = 'OK', kind = 'info' } = {}) => new Promise((resolve) => {
+    const overlay = _buildModal({ title, message, kind, confirmLabel, withCancel: false });
+    _openModal(overlay);
+    const finish = () => { _closeModal(overlay); resolve(); };
+    overlay.querySelector('[data-act="ok"]').addEventListener('click', finish);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(); });
+    document.addEventListener('keydown', function onKey(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); finish(); } });
+    setTimeout(() => overlay.querySelector('[data-act="ok"]').focus(), 50);
+  });
+
+  Lexora.confirmModal = ({ title = 'Confirm', message = '', confirmLabel = 'OK', cancelLabel = 'Cancel', danger = false } = {}) => new Promise((resolve) => {
+    const overlay = _buildModal({ title, message, danger, confirmLabel, cancelLabel, withCancel: true });
+    _openModal(overlay);
+    const finish = (val) => { _closeModal(overlay); resolve(val); };
+    overlay.querySelector('[data-act="ok"]').addEventListener('click', () => finish(true));
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => finish(false));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(false); });
+    document.addEventListener('keydown', function onKey(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); finish(false); } });
+    setTimeout(() => overlay.querySelector('[data-act="ok"]').focus(), 50);
+  });
+
+  Lexora.promptModal = ({ title = 'Enter', message = '', fields = [], confirmLabel = 'Save', cancelLabel = 'Cancel' } = {}) => new Promise((resolve) => {
+    const overlay = _buildModal({ title, message, fields, confirmLabel, cancelLabel, withCancel: true });
+    _openModal(overlay);
+    const inputs = overlay.querySelectorAll('input');
+    const errBox = overlay.querySelector('.lex-modal__error');
+    const finish = (val) => { _closeModal(overlay); resolve(val); };
+
+    const submit = () => {
+      const values = {};
+      let firstInvalid = null;
+      let errMsg = '';
+      for (let i = 0; i < inputs.length; i++) {
+        const inp = inputs[i];
+        const f = fields[i];
+        const v = inp.value;
+        if (f.required !== false && !v) { if (!firstInvalid) { firstInvalid = inp; errMsg = `Please fill in “${f.label || f.name}”.`; } }
+        else if (f.minLength && v.length < f.minLength) { if (!firstInvalid) { firstInvalid = inp; errMsg = `“${f.label || f.name}” must be at least ${f.minLength} characters.`; } }
+        values[f.name] = v;
+      }
+      if (firstInvalid) { errBox.hidden = false; errBox.textContent = errMsg; firstInvalid.focus(); return; }
+      finish(values);
+    };
+
+    overlay.querySelector('[data-act="ok"]').addEventListener('click', submit);
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => finish(null));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) finish(null); });
+    inputs.forEach((inp) => inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }));
+    document.addEventListener('keydown', function onKey(e) { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); finish(null); } });
+    setTimeout(() => inputs[0]?.focus(), 50);
+  });
 
   // ============== auth-menu dropdown ==============
   document.querySelectorAll('.auth-menu').forEach((menu) => {

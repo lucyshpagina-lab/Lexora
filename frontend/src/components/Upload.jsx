@@ -2,11 +2,7 @@ import React, { useState } from "react";
 import { api } from "../api.js";
 import UploadConfirmModal from "../modals/UploadConfirmModal.jsx";
 
-const LANGUAGES = [
-  "English", "Spanish", "French", "German", "Italian", "Portuguese",
-  "Russian", "Polish", "Dutch", "Swedish", "Greek", "Latin",
-  "Mandarin", "Japanese", "Korean", "Arabic", "Hebrew", "Turkish",
-];
+const LANGUAGES = ["English", "French"];
 
 const METHODS = [
   { id: "local", label: "Upload from device", hint: "PDF or .txt with one entry per line" },

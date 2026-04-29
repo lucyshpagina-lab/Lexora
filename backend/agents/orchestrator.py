@@ -31,6 +31,7 @@ class Orchestrator:
         target_language: str,
         source: str,
         user_id: Optional[str] = None,
+        parse_stats: Optional[Dict[str, int]] = None,
     ) -> Dict[str, Any]:
         # Authenticated callers pass a deterministic id (e.g. derived from
         # their email) so re-uploading replaces the existing deck instead of
@@ -46,13 +47,16 @@ class Orchestrator:
             "source": source,
         }
         self.progress_agent.save_progress(user_id, state)
-        return {
+        out = {
             "user_id": user_id,
             "total": len(words),
             "target_language": target_language,
             "native_language": native_language,
             "llm_live": self.llm.is_live,
         }
+        if parse_stats:
+            out["parse_stats"] = parse_stats
+        return out
 
     def handle_upload(
         self,
@@ -64,9 +68,10 @@ class Orchestrator:
     ) -> Dict[str, Any]:
         self.file_agent.validate_file(filename, len(file_bytes))
         text = self.file_agent.read_local(filename, file_bytes)
-        words = self.file_agent.extract_words(text)
+        words, stats = self.file_agent.extract_words_with_stats(text)
         return self._build_session(
-            words, native_language, target_language, filename, user_id=user_id
+            words, native_language, target_language, filename,
+            user_id=user_id, parse_stats=stats,
         )
 
     def handle_drive_upload(
@@ -77,9 +82,10 @@ class Orchestrator:
         user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         text = self.file_agent.read_pdf_from_drive(file_id)
-        words = self.file_agent.extract_words(text)
+        words, stats = self.file_agent.extract_words_with_stats(text)
         return self._build_session(
-            words, native_language, target_language, f"drive:{file_id}", user_id=user_id
+            words, native_language, target_language, f"drive:{file_id}",
+            user_id=user_id, parse_stats=stats,
         )
 
     _DEMO_PAIRS = [

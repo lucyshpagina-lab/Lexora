@@ -358,6 +358,7 @@ body.with-tree { overflow-x: hidden; }
 .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; border: 2px solid var(--ink); font-size: 14px; }
 .alert--err { background: var(--clay); color: var(--bg); }
 .alert--ok { background: var(--accent); color: var(--ink); }
+.alert--info { background: var(--bg-deep); color: var(--ink); }
 
 /* ============ app shell (dashboard etc) ============ */
 .app-shell { padding: 40px 0 80px; }
@@ -476,9 +477,21 @@ body.with-tree { overflow-x: hidden; }
   transform-origin: 50% 50%;
 }
 .cursor.is-over svg { transform: scale(1.2); }
-.cursor.is-text { opacity: 0.5; }
-.cursor.is-text svg { transform: scale(0.7); }
+.cursor.is-text { display: none; }
 @media (hover: none), (pointer: coarse) { body { cursor: auto; } .cursor { display: none; } }
+
+/* Show the system text caret over selectable text content so users can see
+   where they're clicking when they want to select. The ladybug hides via
+   .cursor.is-text above. */
+p, h1, h2, h3, h4, h5, h6, li, blockquote, summary, label,
+code, em, strong, dd, dt, figcaption, .lead, .eyebrow, .muted {
+  cursor: text;
+}
+input, textarea, [contenteditable] { cursor: text; }
+a, a *, button, button *, .btn, .btn *, .chip, .chip *,
+[role="button"], [role="button"] *, [data-magnetic], [data-magnetic] * {
+  cursor: none;
+}
 
 /* ============ reveal-on-scroll (gentler) ============ */
 .reveal { opacity: 0; transform: translateY(12px); transition: opacity 1s var(--easing), transform 1s var(--easing); }
@@ -892,13 +905,138 @@ body.with-tree { overflow-x: hidden; }
 }
 .profile-menu__panel .dot--leaf { background: var(--leaf); }
 .profile-menu__panel .dot--clay { background: var(--bark); }
-.profile-menu__panel .dot--ink  { background: var(--ink); }
+.profile-menu__panel .dot--ink  { background: transparent; }
 .profile-menu__panel .dot--rust { background: var(--rust); }
 .profile-menu__panel .dot--moss { background: var(--moss); }
 .profile-menu__sep {
   border-top: 1px dashed rgba(31, 58, 44, 0.25);
   margin: 6px 4px;
 }
+
+/* trigger variant: text + caret (no avatar) — used in index.html header */
+.profile-menu__trigger--text { padding: 8px 14px; }
+.profile-menu__name { letter-spacing: 0.01em; }
+.profile-menu__caret { font-size: 12px; opacity: 0.7; transition: transform 0.18s; }
+.profile-menu.is-open .profile-menu__caret { transform: rotate(180deg); }
+
+/* ---- Modal (site-style replacement for prompt/confirm/alert) ------------- */
+.lex-modal__overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(31, 58, 44, 0.45);
+  opacity: 0; transition: opacity 0.18s ease;
+  padding: 24px;
+}
+.lex-modal__overlay.is-open { opacity: 1; }
+.lex-modal {
+  position: relative; width: 100%; max-width: 460px;
+  background: var(--bg); border: 1.5px solid var(--ink);
+  border-radius: 18px; box-shadow: 0 16px 40px rgba(31, 58, 44, 0.25);
+  padding: 28px 26px 22px; transform: translateY(-12px);
+  transition: transform 0.2s ease;
+}
+.lex-modal__overlay.is-open .lex-modal { transform: translateY(0); }
+.lex-modal__leaves { position: absolute; inset: 0; pointer-events: none; }
+.lex-modal__leaf { position: absolute; font-size: 18px; opacity: 0.55; }
+.lex-modal__leaf--tl { top: 8px;    left: 10px; }
+.lex-modal__leaf--tr { top: 8px;    right: 10px;  transform: scaleX(-1); }
+.lex-modal__leaf--bl { bottom: 8px; left: 10px;   transform: scaleY(-1); }
+.lex-modal__leaf--br { bottom: 8px; right: 10px;  transform: scale(-1, -1); }
+.lex-modal__title {
+  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-weight: 800; font-size: 24px; line-height: 1.15;
+  color: var(--ink); margin: 0 0 10px;
+}
+.lex-modal__body p {
+  font: 400 15px/1.55 'Space Grotesk', sans-serif;
+  color: var(--ink-soft); margin: 0 0 14px;
+}
+.lex-modal__field {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-bottom: 14px;
+}
+.lex-modal__field span {
+  font: 600 13px/1 'Space Grotesk', sans-serif;
+  color: var(--ink); letter-spacing: 0.02em;
+}
+.lex-modal__field input {
+  font: 500 15px/1.4 'Space Grotesk', sans-serif;
+  color: var(--ink); background: var(--bg);
+  border: 1.5px solid var(--ink); border-radius: 10px;
+  padding: 10px 12px; outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.lex-modal__field input:focus {
+  box-shadow: 0 0 0 3px rgba(200, 226, 106, 0.4);
+}
+.lex-modal__error {
+  background: rgba(184, 75, 75, 0.10);
+  border: 1px solid rgba(184, 75, 75, 0.45);
+  color: #8a3a3a;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font: 500 13px/1.4 'Space Grotesk', sans-serif;
+  margin: 0 0 12px;
+}
+.lex-modal__actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin-top: 6px;
+}
+.lex-modal__btn {
+  padding: 9px 18px; border-radius: 999px;
+  font: 600 14px/1 'Space Grotesk', sans-serif;
+  cursor: pointer; border: 1.5px solid var(--ink);
+  background: var(--bg); color: var(--ink);
+  transition: background 0.18s, transform 0.18s, color 0.18s;
+}
+.lex-modal__btn:hover { transform: translateY(-1px); }
+.lex-modal__btn--primary { background: var(--ink); color: var(--bg); }
+.lex-modal__btn--primary:hover { color: var(--accent, #C8E26A); }
+.lex-modal__btn--ghost   { background: var(--bg); }
+.lex-modal__btn--ghost:hover { background: var(--bg-deep); }
+.lex-modal__btn--danger  { background: var(--rust, #B33A3A); color: #fff; border-color: var(--rust, #B33A3A); }
+.lex-modal__btn--danger:hover { background: #9a3030; }
+
+/* ---- btn-druid (Back to my profile) — lantern-glow text + druid icon ----- */
+.btn-druid {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 9px 18px 9px 14px; border-radius: 999px;
+  background: transparent; border: none;
+  color: var(--ink); text-decoration: none;
+  font: 700 14px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.03em;
+  transition: transform 0.2s;
+}
+.btn-druid:hover { transform: translateY(-1px); }
+.btn-druid__icon { width: 24px; height: 28px; flex-shrink: 0; filter: drop-shadow(0 0 5px rgba(232, 192, 85, 0.55)); }
+.btn-druid__text {
+  color: var(--ink);
+  text-shadow:
+    0 0 6px rgba(232, 192, 85, 0.6),
+    0 0 14px rgba(232, 192, 85, 0.35);
+  animation: druid-lantern 3.4s ease-in-out infinite;
+}
+@keyframes druid-lantern {
+  0%, 100% { text-shadow: 0 0 4px rgba(232, 192, 85, 0.45), 0 0 10px rgba(232, 192, 85, 0.25); }
+  50%      { text-shadow: 0 0 10px rgba(232, 192, 85, 0.85), 0 0 20px rgba(232, 192, 85, 0.55); }
+}
+
+/* ---- btn-start (Start your journey — appears after a successful upload) - */
+.btn-start {
+  display: inline-flex; align-items: center; gap: 12px;
+  margin: 22px auto 4px; padding: 14px 28px;
+  border-radius: 999px; border: 1.5px solid var(--ink);
+  background: var(--ink); color: var(--bg);
+  font: 700 16px/1 'Space Grotesk', sans-serif; letter-spacing: 0.04em;
+  text-decoration: none; cursor: pointer;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s, color 0.18s;
+  text-align: center;
+}
+.btn-start[hidden] { display: none; }
+.btn-start:hover { transform: translate(-1px, -2px); box-shadow: 6px 6px 0 var(--ink); color: var(--accent, #C8E26A); }
+.btn-start__arrow { transition: transform 0.18s; }
+.btn-start:hover .btn-start__arrow { transform: translateX(4px); }
 
 /* ---- hello-row (decorated greeting) -------------------------------------- */
 
@@ -1043,6 +1181,25 @@ body.with-tree { overflow-x: hidden; }
 .vocab-drop__icon, .vocab-drive__icon { font-size: 36px; line-height: 1; }
 .vocab-drop strong, .vocab-drive strong { font: 600 16px 'Space Grotesk', sans-serif; }
 .vocab-drop .muted, .vocab-drive .muted { font-size: 13px; }
+
+.vocab-drive.is-disabled {
+  position: relative;
+  opacity: 0.55;
+  border-style: dashed;
+  background: rgba(200, 226, 106, 0.06);
+}
+.vocab-drive.is-disabled:hover {
+  transform: none;
+  background: rgba(200, 226, 106, 0.06);
+  border-color: var(--ink);
+}
+.vocab-drive__badge {
+  position: absolute; top: 10px; right: 12px;
+  font: 600 10px 'JetBrains Mono', monospace;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--ink); color: var(--bg);
+}
 
 .vocab-status:empty { display: none; }
 .vocab-status .alert { text-align: left; }

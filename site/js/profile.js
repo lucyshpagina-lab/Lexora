@@ -68,36 +68,61 @@
     }
   });
 
-  document.querySelector('[data-action="continue"]')?.addEventListener('click', (e) => {
+  const APP_BASE = 'http://127.0.0.1:8000/app/';
+  const buildAppHref = (sid) => `${APP_BASE}#user_id=${encodeURIComponent(sid)}`;
+
+  const continueLink = document.querySelector('[data-action="continue"]');
+  const continueItem = continueLink?.closest('li');
+  const setContinueVisible = (visible) => { if (continueItem) continueItem.hidden = !visible; };
+  setContinueVisible(Boolean(profile.session_id));
+
+  continueLink?.addEventListener('click', (e) => {
     e.preventDefault();
-    document.getElementById('vocab-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (profile.session_id) {
+      location.href = buildAppHref(profile.session_id);
+    } else {
+      document.getElementById('vocab-section')?.scrollIntoView({ behavior: 'smooth' });
+    }
   });
 
   document.querySelector('[data-action="change-password"]')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    const oldp = prompt('Current password:');
-    if (oldp == null) return;
-    const newp = prompt('New password (min 8 chars):');
-    if (newp == null) return;
-    if (newp.length < 8) { showToast('err', 'Password must be at least 8 characters.'); return; }
+    const result = await Lexora.promptModal({
+      title: 'Reset password',
+      message: 'Enter a new password — no need to remember the old one.',
+      fields: [
+        { name: 'new_password', label: 'New password', type: 'password', minLength: 8, placeholder: 'min 8 characters', autocomplete: 'new-password' },
+      ],
+      confirmLabel: 'Update password',
+    });
+    if (!result) return;
     try {
-      await Lexora.api('/api/auth/change-password', {
-        method: 'POST', body: { old_password: oldp, new_password: newp },
+      await Lexora.api('/api/auth/reset-password', {
+        method: 'POST', body: { new_password: result.new_password },
       });
-      showToast('ok', 'Password updated.');
+      await Lexora.alertModal({ title: 'Password updated', message: 'Your new password is now in effect.' });
     } catch (err) {
-      showToast('err', err.message || 'Could not change password.');
+      await Lexora.alertModal({ title: 'Could not update password', message: err.message || 'Please try again.', kind: 'danger' });
     }
   });
 
   document.querySelector('[data-action="delete-account"]')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    const ok = await Lexora.confirmModal({
+      title: 'Delete account',
+      message: 'Delete your account permanently? This cannot be undone.',
+      confirmLabel: 'Delete account',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await Lexora.api('/api/auth/me', { method: 'DELETE' });
-      Lexora.signOut();
+      Lexora.token.clear();
+      Lexora.profile.clear();
+      await Lexora.alertModal({ title: 'Account deleted', message: 'Your account and data have been removed. Goodbye for now.' });
+      location.href = 'index.html';
     } catch (err) {
-      showToast('err', err.message || 'Could not delete account.');
+      await Lexora.alertModal({ title: 'Could not delete account', message: err.message || 'Please try again.', kind: 'danger' });
     }
   });
 
@@ -108,7 +133,7 @@
 
   // ---- language picker -----------------------------------------------------
 
-  const DEFAULT_LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Italian'];
+  const DEFAULT_LANGUAGES = ['English', 'French'];
 
   const langDropdown = document.getElementById('language-dropdown');
   const langButton = document.getElementById('language-button');
@@ -125,7 +150,8 @@
 
   const renderLangList = () => {
     if (!langList) return;
-    const all = DEFAULT_LANGUAGES.concat(customLanguages.filter((l) => !DEFAULT_LANGUAGES.includes(l)));
+    const all = DEFAULT_LANGUAGES.concat(customLanguages.filter((l) => !DEFAULT_LANGUAGES.includes(l)))
+      .sort((a, b) => a.localeCompare(b));
     langList.innerHTML = all.map((lang) => `
       <li role="menuitem" data-lang="${escapeAttr(lang)}" class="${lang === currentLang ? 'is-active' : ''}">
         <span class="lang-leaf" aria-hidden="true">🌿</span>
@@ -156,9 +182,14 @@
 
     langList.querySelector('[data-action="add-language"]')?.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const name = prompt('Add a language (e.g. Sindarin):');
-      if (!name) return;
-      const trimmed = name.trim();
+      const result = await Lexora.promptModal({
+        title: 'Add another language',
+        message: 'What language would you like to learn?',
+        fields: [{ name: 'lang', label: 'Language', placeholder: 'e.g. Sindarin' }],
+        confirmLabel: 'Add language',
+      });
+      if (!result) return;
+      const trimmed = (result.lang || '').trim();
       if (!trimmed) return;
       try {
         const out = await Lexora.api('/api/auth/language/custom', {
@@ -196,11 +227,22 @@
   const dropZone = document.getElementById('vocab-drop');
   const driveBtn = document.getElementById('vocab-drive');
   const status = document.getElementById('vocab-status');
+  const startBtn = document.getElementById('vocab-start');
+  // Start your journey appears strictly after a successful upload in the
+  // current page lifetime — persistence handled by "Continue learning".
+  const setStartVisible = (visible, sessionId) => {
+    if (!startBtn) return;
+    startBtn.hidden = !visible;
+    if (visible && sessionId) {
+      startBtn.setAttribute('href', buildAppHref(sessionId));
+    }
+  };
+  setStartVisible(false);
 
   const handleFile = async (file) => {
     if (!file) return;
     if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
-      showStatus('err', 'Only PDF files are accepted (e.g. myvocabulary.pdf).');
+      showStatus('err', 'Only PDF files are accepted (e.g. my_vocabulary.pdf).');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -217,7 +259,16 @@
       // Persist the deck session id so future "continue learning" calls work.
       profile.session_id = out.user_id;
       Lexora.profile.set(profile);
-      showStatus('ok', `Loaded <strong>${out.total}</strong> word${out.total === 1 ? '' : 's'} from your vocabulary. Ready to study.`);
+      setContinueVisible(true);
+      setStartVisible(true, out.user_id);
+      const total = out.total;
+      const parsed = out.parse_stats?.parsed ?? total;
+      const lines = out.parse_stats?.total_lines;
+      const ratio = lines ? ` (${parsed} of ${lines} lines)` : '';
+      showStatus('ok',
+        `Loaded <strong>${total}</strong> entr${total === 1 ? 'y' : 'ies'}` +
+        ` from your vocabulary${ratio}. Ready to study.`
+      );
     } catch (err) {
       showStatus('err', err.message || 'Could not upload file.');
     }
@@ -235,15 +286,46 @@
     });
   }
 
-  driveBtn?.addEventListener('click', (e) => {
+  driveBtn?.addEventListener('click', async (e) => {
     e.preventDefault();
-    // Mock Drive picker — real OAuth + Picker requires Google Cloud creds.
-    // Restricted by design to a single file: myvocabulary.pdf.
-    showStatus('ok',
-      'Google Drive integration is in preview. Access is scoped to a single ' +
-      'file (<code>myvocabulary.pdf</code>) — other files and folders remain disabled. ' +
-      'Real Drive Picker will appear here once Google Cloud credentials are configured.'
-    );
+    const result = await Lexora.promptModal({
+      title: 'Read from Google Drive',
+      message: 'Paste the Drive file ID of your my_vocabulary.pdf. ' +
+               'You can find it in the share URL after /d/.',
+      fields: [{
+        name: 'file_id', label: 'Drive file ID',
+        placeholder: 'e.g. 1A2b3C4d5E6f7G8h9I0jK', minLength: 8,
+      }],
+      confirmLabel: 'Fetch from Drive',
+    });
+    if (!result) return;
+    const fileId = (result.file_id || '').trim();
+    if (!fileId) return;
+    showStatus('ok', `Asking the Drive MCP server for <code>${escapeHtml(fileId)}</code>…`);
+    try {
+      const out = await Lexora.api('/api/upload/drive', {
+        method: 'POST',
+        body: {
+          file_id: fileId,
+          native_language: 'English',
+          target_language: currentLang || 'English',
+        },
+      });
+      profile.session_id = out.user_id;
+      Lexora.profile.set(profile);
+      setContinueVisible(true);
+      setStartVisible(true, out.user_id);
+      const total = out.total;
+      const parsed = out.parse_stats?.parsed ?? total;
+      const lines = out.parse_stats?.total_lines;
+      const ratio = lines ? ` (${parsed} of ${lines} lines)` : '';
+      showStatus('ok',
+        `Loaded <strong>${total}</strong> entr${total === 1 ? 'y' : 'ies'}` +
+        ` from Drive${ratio}. Ready to study.`
+      );
+    } catch (err) {
+      showStatus('err', err.message || 'Could not fetch from Drive.');
+    }
   });
 
   // ---- helpers -------------------------------------------------------------

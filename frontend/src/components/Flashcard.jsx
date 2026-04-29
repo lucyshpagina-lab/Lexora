@@ -143,7 +143,7 @@ export default function Flashcard({ session }) {
   if (done) {
     return (
       <div className="panel" style={{ textAlign: "center" }}>
-        <h2 style={{ fontFamily: "var(--font-gothic)", fontSize: 32 }}>The deck is complete.</h2>
+        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 32 }}>The deck is complete.</h2>
         <p className="lead">Every word has been faced. Visit Progress for your tally.</p>
       </div>
     );

@@ -11,6 +11,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from agents.orchestrator import Orchestrator
@@ -122,10 +123,15 @@ async def upload(
 
 
 @app.post("/api/upload/drive")
-def upload_drive(req: DriveUploadRequest):
+def upload_drive(
+    req: DriveUploadRequest,
+    authorization: Optional[str] = Header(None),
+):
+    email = _maybe_email(authorization)
+    user_id = _session_id_for_email(email) if email else None
     try:
         return orchestrator.handle_drive_upload(
-            req.file_id, req.native_language, req.target_language
+            req.file_id, req.native_language, req.target_language, user_id=user_id
         )
     except FileValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -221,6 +227,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=200)
 
 
+class ResetPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=200)
+
+
 class LanguageRequest(BaseModel):
     language: str = Field(..., min_length=1, max_length=64)
 
@@ -304,6 +314,17 @@ def change_password(
     return {"ok": True}
 
 
+@app.post("/api/auth/reset-password")
+def reset_password(
+    req: ResetPasswordRequest,
+    email: str = Depends(auth_service.get_current_user_email),
+):
+    if not user_store.get(email):
+        raise HTTPException(status_code=404, detail="User not found.")
+    user_store.update_password(email, auth_service.hash_password(req.new_password))
+    return {"ok": True}
+
+
 @app.delete("/api/auth/me")
 def delete_account(email: str = Depends(auth_service.get_current_user_email)):
     user_store.delete(email)
@@ -380,3 +401,9 @@ def add_custom_language(
         raise HTTPException(status_code=400, detail="Missing language.")
     langs = user_store.add_custom_language(email, lang)
     return {"ok": True, "custom_languages": langs}
+
+
+# Serve the built React study app at /app/ (vite base = /app/).
+_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if _dist.is_dir():
+    app.mount("/app", StaticFiles(directory=str(_dist), html=True), name="app")

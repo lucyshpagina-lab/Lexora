@@ -81,7 +81,7 @@
 
   <!-- Language picker -->
   <section class="language-picker">
-    <p class="eyebrow center">Step 1 · Choose your tongue</p>
+    <p class="eyebrow center">Step 1 · Language</p>
     <div class="language-dropdown" id="language-dropdown">
       <button type="button" class="language-button" id="language-button" aria-haspopup="listbox" aria-expanded="false">
         <span class="language-leaf" aria-hidden="true">🌿</span>
@@ -100,9 +100,9 @@
       <span class="vocab-leaf vocab-leaf--bl" aria-hidden="true">🍃</span>
       <span class="vocab-leaf vocab-leaf--br" aria-hidden="true">🌿</span>
 
-      <p class="eyebrow">Step 2 · My vocabulary</p>
+      <p class="eyebrow">Step 2 · Upload your vocabulary</p>
       <h2>Bring your scrolls.</h2>
-      <p class="lead">Upload <code>myvocabulary.pdf</code>. Only PDF files are accepted.</p>
+      <p class="lead">Upload <strong><code>my_vocabulary.pdf</code></strong>. Only file with such name and extension can be recognised and handled.</p>
 
       <div class="vocab-options">
         <div class="vocab-drop" id="vocab-drop" tabindex="0" role="button" aria-label="Upload PDF from your computer">
@@ -114,12 +114,17 @@
         <button type="button" class="vocab-drive" id="vocab-drive">
           <span class="vocab-drive__icon" aria-hidden="true">☁️</span>
           <strong>Google Drive</strong>
-          <span class="muted">scoped to <code>myvocabulary.pdf</code></span>
+          <span class="muted">paste a Drive file ID · via MCP</span>
         </button>
       </div>
 
       <input type="file" id="vocab-file" accept="application/pdf,.pdf" hidden/>
       <div id="vocab-status" class="vocab-status"></div>
+
+      <a href="http://127.0.0.1:8000/app/" class="btn-start" id="vocab-start" hidden>
+        <span class="btn-start__text">Start your journey</span>
+        <span class="btn-start__arrow" aria-hidden="true">→</span>
+      </a>
     </div>
   </section>
 </main>

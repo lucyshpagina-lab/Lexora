@@ -3,14 +3,16 @@
 import io
 import re
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from validators.file_validator import validate_file as _validate, FileValidationError
 
 
-# Word-translation separators we recognize. Include en/em-dashes and tabs.
+# Word-translation separators we recognize: dashes, colon, equals, tab,
+# unicode arrows, vertical bar, two-or-more spaces (two-column PDF layout).
+_SEP_CHARS = r"\t:=\-–—|→⇒⟶»"
 _SEPARATOR_RE = re.compile(
-    r"^(?P<word>[^\t:=\-–—]{1,80}?)\s*[\t:=\-–—]+\s*(?P<translation>.{1,200})$"
+    rf"^(?P<word>[^{_SEP_CHARS}]{{1,80}}?)\s*(?:[{_SEP_CHARS}]+|\s{{2,}})\s*(?P<translation>.{{1,200}})$"
 )
 
 
@@ -36,55 +38,27 @@ class FileAgent:
         return "\n".join(pages)
 
     def read_pdf_from_drive(self, file_id: str) -> str:
-        """MCP integration point for Google Drive.
+        """Fetch a Drive file via the configured MCP server.
 
-        The Drive MCP server is invoked via a subprocess call expected to
-        return the file's text on stdout. Configure with LEXORA_DRIVE_MCP
-        (path to a script that takes a file_id and prints text), e.g.:
+        Delegates to :mod:`services.drive_mcp` which speaks JSON-RPC over
+        stdio with the MCP server pointed to by ``LEXORA_DRIVE_MCP_CMD``.
 
-            export LEXORA_DRIVE_MCP=/path/to/drive_mcp_fetch.sh
-
-        Without that var set, this returns a structured error so the UI can
-        prompt the user to configure MCP.
+        If the server returns base64-encoded bytes (a real PDF), they are
+        parsed with pypdf locally. If it returns text already extracted by
+        the server, that text is returned as-is.
         """
-        import os
-        import shlex
-        import subprocess
-
-        cmd = os.environ.get("LEXORA_DRIVE_MCP")
-        if not cmd:
-            raise FileValidationError(
-                "Google Drive integration requires the Drive MCP server. "
-                "Set LEXORA_DRIVE_MCP to the path of an executable that "
-                "accepts a Drive file_id and writes the document text to stdout."
-            )
-        if not file_id or not file_id.strip():
-            raise FileValidationError("Missing Drive file_id.")
-        # Disallow shell metacharacters in file_id; Google file IDs are
-        # alphanumeric + - _.
-        if not all(c.isalnum() or c in "-_" for c in file_id):
-            raise FileValidationError("Invalid Drive file_id.")
+        from services import drive_mcp
 
         try:
-            result = subprocess.run(
-                shlex.split(cmd) + [file_id],
-                capture_output=True,
-                timeout=30,
-                text=True,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as e:
-            raise FileValidationError(f"Drive MCP timed out: {e}") from e
-        except FileNotFoundError as e:
-            raise FileValidationError(
-                f"Drive MCP command not found: {cmd}"
-            ) from e
-        if result.returncode != 0:
-            raise FileValidationError(
-                f"Drive MCP failed (rc={result.returncode}): "
-                f"{(result.stderr or '').strip()[:300]}"
-            )
-        return result.stdout
+            result = drive_mcp.fetch_drive_file(file_id)
+        except drive_mcp.DriveMCPError as e:
+            raise FileValidationError(str(e)) from e
+
+        if result.pdf_bytes is not None:
+            return self.read_pdf_local(result.pdf_bytes)
+        if result.text is not None:
+            return result.text
+        raise FileValidationError("Drive MCP returned an empty result.")
 
     def read_local(self, filename: str, file_bytes: bytes) -> str:
         ext = Path(filename).suffix.lower()
@@ -97,18 +71,29 @@ class FileAgent:
     def extract_words(self, content: str) -> List[Dict[str, str]]:
         """Parse 'word - translation' lines from extracted text.
 
-        Recognized separators: ` - `, ` – `, ` — `, `:`, `=`, tab.
+        Language-agnostic: words and translations may be in any script.
+        Recognized separators: dashes, colon, equals, tab, unicode arrows,
+        vertical bar, or two-or-more consecutive spaces (two-column PDFs).
         Lines that don't match are skipped. Duplicates by word are dropped.
         """
+        words, _ = self.extract_words_with_stats(content)
+        return words
+
+    def extract_words_with_stats(
+        self, content: str
+    ) -> Tuple[List[Dict[str, str]], Dict[str, int]]:
+        """Like extract_words, but also returns parse stats for UI feedback."""
         if not content or not content.strip():
             raise FileValidationError("Document is empty after extraction.")
 
         entries: List[Dict[str, str]] = []
         seen = set()
+        total_lines = 0
         for raw in content.splitlines():
             line = raw.strip()
             if not line:
                 continue
+            total_lines += 1
             # Skip lines that are obviously prose (long, no separator).
             if len(line) > 300:
                 continue
@@ -132,4 +117,4 @@ class FileAgent:
             raise FileValidationError(
                 "No vocabulary entries found. Expected lines like 'word - translation'."
             )
-        return entries
+        return entries, {"total_lines": total_lines, "parsed": len(entries)}
