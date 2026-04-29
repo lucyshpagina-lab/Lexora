@@ -24,6 +24,39 @@ def test_extract_words_multiple_separators(agent):
     assert {w["word"] for w in words} == {"uno", "dos", "tres", "cuatro", "cinco"}
 
 
+def test_extract_words_arrow_separators(agent):
+    text = "voiture → car\nmaison ⇒ house\nfleur ⟶ flower\ntable » desk"
+    words = agent.extract_words(text)
+    assert {w["word"] for w in words} == {"voiture", "maison", "fleur", "table"}
+
+
+def test_extract_words_pipe_and_column_separators(agent):
+    text = "alpha | first\nbeta    second\ngamma   third"  # last two use 3+ spaces
+    words = agent.extract_words(text)
+    assert {w["word"] for w in words} == {"alpha", "beta", "gamma"}
+
+
+def test_extract_words_language_agnostic_cyrillic(agent):
+    text = "дом - house\nкнига - book\nдружба - friendship"
+    words = agent.extract_words(text)
+    assert [w["word"] for w in words] == ["дом", "книга", "дружба"]
+    assert words[0]["translation"] == "house"
+
+
+def test_extract_words_with_stats_counts_lines(agent):
+    text = (
+        "uno - one\n"
+        "this line is prose with no separator at all\n"
+        "dos - two\n"
+        "\n"             # blank lines do not count toward total_lines
+        "another prose line that we cannot parse here\n"
+        "tres - three\n"
+    )
+    words, stats = agent.extract_words_with_stats(text)
+    assert [w["word"] for w in words] == ["uno", "dos", "tres"]
+    assert stats == {"parsed": 3, "total_lines": 5}
+
+
 def test_extract_words_dedupe_case_insensitive(agent):
     text = "casa - house\nCASA - home"
     words = agent.extract_words(text)

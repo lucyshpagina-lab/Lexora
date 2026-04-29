@@ -96,6 +96,7 @@ def test_upload_endpoint(client, monkeypatch):
     body = r.json()
     assert body["total"] == 3
     assert body["user_id"].startswith("u_")  # anonymous → random id
+    assert body["parse_stats"] == {"parsed": 3, "total_lines": 3}
 
 
 def test_upload_with_auth_uses_deterministic_id(client, monkeypatch):
@@ -125,6 +126,54 @@ def test_upload_rejects_bad_extension(client):
     files = {"file": ("words.zip", b"x", "application/zip")}
     r = client.post("/api/upload", files=files)
     assert r.status_code == 400
+
+
+def test_upload_drive_without_mcp_returns_400(client, monkeypatch):
+    """Without LEXORA_DRIVE_MCP_CMD the Drive endpoint must fail clearly."""
+    monkeypatch.delenv("LEXORA_DRIVE_MCP_CMD", raising=False)
+    r = client.post(
+        "/api/upload/drive",
+        json={"file_id": "abc123ABC_xyz", "native_language": "English", "target_language": "French"},
+    )
+    assert r.status_code == 400
+    assert "MCP" in r.json()["detail"]
+
+
+def test_upload_drive_with_mock_returns_session(client, monkeypatch):
+    import main as main_module
+    monkeypatch.setattr(
+        main_module.orchestrator.file_agent, "read_pdf_from_drive",
+        lambda fid: "voiture - car\nfleur - flower",
+    )
+    r = client.post(
+        "/api/upload/drive",
+        json={"file_id": "abc123ABC_xyz", "native_language": "English", "target_language": "French"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == 2
+    assert body["target_language"] == "French"
+    assert body["parse_stats"]["parsed"] == 2
+
+
+def test_upload_drive_with_auth_uses_deterministic_id(client, monkeypatch):
+    """Authed Drive upload must reuse the email-derived user_id."""
+    import hashlib
+    import main as main_module
+    monkeypatch.setattr(
+        main_module.orchestrator.file_agent, "read_pdf_from_drive",
+        lambda fid: "voiture - car\nfleur - flower",
+    )
+    token = main_module.auth_service.issue_jwt("authed@x.com")
+    expected = "u_" + hashlib.sha256(b"authed@x.com").hexdigest()[:16]
+    headers = {"Authorization": f"Bearer {token}"}
+    r = client.post(
+        "/api/upload/drive",
+        headers=headers,
+        json={"file_id": "abc123ABC_xyz", "native_language": "English", "target_language": "French"},
+    )
+    assert r.status_code == 200
+    assert r.json()["user_id"] == expected
 
 
 def test_grammar_topics_with_mock_llm(client):

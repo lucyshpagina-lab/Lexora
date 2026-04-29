@@ -128,6 +128,32 @@ def test_handle_upload_extracts_words(orch, monkeypatch):
     assert [v["word"] for v in state["vocabulary"]] == ["uno", "dos", "tres"]
 
 
+def test_handle_upload_returns_parse_stats(orch, monkeypatch):
+    """Upload response must surface parse stats so the UI can show progress."""
+    text = (
+        "uno - one\n"
+        "this line cannot be parsed\n"
+        "dos - two\n"
+    )
+    monkeypatch.setattr(orch.file_agent, "read_pdf_local", lambda b: text)
+    out = orch.handle_upload("words.pdf", b"%PDF-1.4", "English", "Spanish")
+    assert out["parse_stats"] == {"parsed": 2, "total_lines": 3}
+
+
+def test_handle_drive_upload_uses_mcp_then_parses(orch, monkeypatch):
+    """Drive flow: MCP returns text → parser → session built like a local upload."""
+    monkeypatch.setattr(
+        orch.file_agent, "read_pdf_from_drive",
+        lambda fid: "voiture → car\nfleur → flower",
+    )
+    out = orch.handle_drive_upload("abc-DEF_123", "English", "French")
+    assert out["total"] == 2
+    assert out["parse_stats"]["parsed"] == 2
+    state = orch.storage.load(out["user_id"])
+    assert [v["word"] for v in state["vocabulary"]] == ["voiture", "fleur"]
+    assert state["source"] == "drive:abc-DEF_123"
+
+
 def test_handle_upload_rejects_txt(orch):
     import pytest
     from validators.file_validator import FileValidationError
