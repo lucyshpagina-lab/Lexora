@@ -44,17 +44,31 @@ def test_extract_words_language_agnostic_cyrillic(agent):
 
 
 def test_extract_words_with_stats_counts_lines(agent):
+    # Strict mode: every non-blank line must be a pair. Blank lines are OK
+    # and do not count toward total_lines.
     text = (
         "uno - one\n"
-        "this line is prose with no separator at all\n"
+        "\n"
         "dos - two\n"
-        "\n"             # blank lines do not count toward total_lines
-        "another prose line that we cannot parse here\n"
+        "\n"
         "tres - three\n"
     )
     words, stats = agent.extract_words_with_stats(text)
     assert [w["word"] for w in words] == ["uno", "dos", "tres"]
-    assert stats == {"parsed": 3, "total_lines": 5}
+    assert stats == {"parsed": 3, "total_lines": 3}
+
+
+def test_extract_words_rejects_prose_lines(agent):
+    text = "uno - one\nthis line is prose with no separator at all\ndos - two\n"
+    with pytest.raises(FileValidationError, match="word1 - word2"):
+        agent.extract_words_with_stats(text)
+
+
+def test_extract_words_rejects_page_number_artifacts(agent):
+    # Page numbers and similar artifacts must fail the strict gate.
+    text = "libro - book\nPage 3\n"
+    with pytest.raises(FileValidationError, match="word1 - word2"):
+        agent.extract_words_with_stats(text)
 
 
 def test_extract_words_dedupe_case_insensitive(agent):
@@ -64,10 +78,16 @@ def test_extract_words_dedupe_case_insensitive(agent):
     assert words[0]["word"] == "casa"
 
 
-def test_extract_words_skips_blank_and_unparseable(agent):
-    text = "\n\nthis line has no separator\nlibro - book\n"
+def test_extract_words_skips_blank_lines(agent):
+    text = "\n\nlibro - book\n"
     words = agent.extract_words(text)
     assert words == [{"word": "libro", "translation": "book"}]
+
+
+def test_extract_words_rejects_unparseable_line(agent):
+    text = "this line has no separator\nlibro - book\n"
+    with pytest.raises(FileValidationError, match="word1 - word2"):
+        agent.extract_words(text)
 
 
 def test_extract_words_strips_trailing_punctuation(agent):
@@ -77,10 +97,13 @@ def test_extract_words_strips_trailing_punctuation(agent):
     assert words[1]["translation"] == "goodbye"
 
 
-def test_extract_words_skips_short_numeric_artifacts(agent):
+def test_extract_words_accepts_numeric_token_pairs(agent):
+    # Strict pair gate: any line that matches 'word - word' is accepted,
+    # even short numeric tokens. Filtering of artifacts now happens upstream
+    # by requiring users to upload a clean vocabulary.pdf.
     text = "12 - x\nlibro - book"
     words = agent.extract_words(text)
-    assert [w["word"] for w in words] == ["libro"]
+    assert [w["word"] for w in words] == ["12", "libro"]
 
 
 def test_extract_words_empty_raises(agent):
@@ -89,7 +112,8 @@ def test_extract_words_empty_raises(agent):
 
 
 def test_extract_words_no_matches_raises(agent):
-    with pytest.raises(FileValidationError, match="No vocabulary"):
+    # Strict gate: any prose is rejected as a non-pair line.
+    with pytest.raises(FileValidationError, match="word1 - word2"):
         agent.extract_words("just some prose without any separators here")
 
 

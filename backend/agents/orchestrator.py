@@ -117,6 +117,28 @@ class Orchestrator:
     def previous_card(self, user_id: str) -> Optional[Dict[str, Any]]:
         return self.vocab_agent.get_previous_word(user_id)
 
+    def advance_card(self, user_id: str) -> Optional[Dict[str, Any]]:
+        return self.vocab_agent.advance(user_id)
+
+    def seek_card(self, user_id: str, idx: int) -> Optional[Dict[str, Any]]:
+        return self.vocab_agent.seek(user_id, idx)
+
+    def generate_word_sentences(self, user_id: str, count: int = 3) -> Dict[str, Any]:
+        """Ask the LLM for example sentences using the current word."""
+        session = self.storage.load(user_id)
+        card = self.vocab_agent.card_from_session(session)
+        if card is None:
+            raise LookupError("No active card.")
+        sentences = self.grammar_agent.generate_word_sentences(
+            session["target_language"], card["word"], count=count
+        )
+        return {
+            "word": card["word"],
+            "translation": card["translation"],
+            "language": session["target_language"],
+            "sentences": sentences,
+        }
+
     def review(self, user_id: str, user_input: str, advance: bool = True) -> Dict[str, Any]:
         # Single load + single save per review. Mutations happen on the
         # in-memory `session` dict via session-based agent helpers.
@@ -152,6 +174,38 @@ class Orchestrator:
         )
 
     # -- Progress flow -----------------------------------------------------
+
+    def restore_upload(
+        self,
+        user_id: str,
+        upload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Rebuild a session from a saved upload-history entry."""
+        words = [
+            {"word": v["word"], "translation": v["translation"]}
+            for v in upload["vocabulary"]
+        ]
+        return self._build_session(
+            words,
+            upload.get("native_language", "English"),
+            upload.get("target_language", "Spanish"),
+            f"history:{upload.get('id', '?')}",
+            user_id=user_id,
+        )
+
+    def vocabulary(self, user_id: str) -> Dict[str, Any]:
+        s = self.storage.load(user_id)
+        return {
+            "user_id": s["user_id"],
+            "current_index": s["current_index"],
+            "total": len(s["vocabulary"]),
+            "vocabulary": [
+                {"index": i, "word": v["word"], "translation": v["translation"], "seen": v.get("seen", False)}
+                for i, v in enumerate(s["vocabulary"])
+            ],
+            "target_language": s["target_language"],
+            "native_language": s["native_language"],
+        }
 
     def progress(self, user_id: str) -> Dict[str, Any]:
         s = self.progress_agent.load_progress(user_id)

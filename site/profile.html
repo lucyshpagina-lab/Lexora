@@ -38,11 +38,12 @@
         </button>
         <ul class="profile-menu__panel" role="menu">
           <li role="none"><a role="menuitem" href="#" data-action="upload-avatar"><span class="dot dot--leaf"></span> Upload avatar</a></li>
+          <li role="none"><a role="menuitem" href="#" data-action="history"><span class="dot dot--moss"></span> History</a></li>
           <li role="none"><a role="menuitem" href="#" data-action="continue"><span class="dot dot--clay"></span> Continue learning</a></li>
           <li role="none"><a role="menuitem" href="#" data-action="change-password"><span class="dot dot--ink"></span> Change password</a></li>
           <li role="none"><a role="menuitem" href="#" data-action="delete-account"><span class="dot dot--rust"></span> Delete account</a></li>
           <li role="separator" class="profile-menu__sep"></li>
-          <li role="none"><a role="menuitem" href="#" data-action="signout"><span class="dot dot--moss"></span> Sign out</a></li>
+          <li role="none"><a role="menuitem" href="#" data-action="signout"><span class="dot dot--rust"></span> Sign out</a></li>
         </ul>
         <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden/>
       </div>
@@ -102,7 +103,7 @@
 
       <p class="eyebrow">Step 2 · Upload your vocabulary</p>
       <h2>Bring your scrolls.</h2>
-      <p class="lead">Upload <strong><code>my_vocabulary.pdf</code></strong>. Only file with such name and extension can be recognised and handled.</p>
+      <p class="lead">Upload <strong><code>vocabulary.pdf</code></strong>. Only file with such name and extension can be recognised and handled.</p>
 
       <div class="vocab-options">
         <div class="vocab-drop" id="vocab-drop" tabindex="0" role="button" aria-label="Upload PDF from your computer">
@@ -114,7 +115,7 @@
         <button type="button" class="vocab-drive" id="vocab-drive">
           <span class="vocab-drive__icon" aria-hidden="true">☁️</span>
           <strong>Google Drive</strong>
-          <span class="muted">paste a Drive file ID · via MCP</span>
+          <span class="muted">opens your Drive · then paste file ID</span>
         </button>
       </div>
 

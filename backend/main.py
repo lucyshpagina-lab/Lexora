@@ -111,7 +111,7 @@ async def upload(
     user_id = _session_id_for_email(email) if email else None
     contents = await file.read()
     try:
-        return orchestrator.handle_upload(
+        result = orchestrator.handle_upload(
             file.filename or "upload",
             contents,
             native_language,
@@ -120,6 +120,24 @@ async def upload(
         )
     except FileValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # Persist to per-user history so the user can come back later, even after
+    # closing the tab. Anonymous uploads (no auth) skip history.
+    if email and user_id:
+        try:
+            vocab = orchestrator.vocabulary(user_id)["vocabulary"]
+            user_store.add_upload(
+                email=email, user_id=user_id,
+                filename=file.filename or "vocabulary.pdf",
+                total=result["total"],
+                target_language=target_language,
+                native_language=native_language,
+                vocabulary=[{"word": v["word"], "translation": v["translation"]} for v in vocab],
+            )
+        except Exception:
+            # History is opportunistic — never block the upload response.
+            pass
+    return result
 
 
 @app.post("/api/upload/drive")
@@ -165,6 +183,49 @@ def previous_word(user_id: str):
     return {"done": False, **card}
 
 
+@app.post("/api/word/advance")
+def advance_word(user_id: str):
+    """Move to the next card without recording a review.
+
+    Used by the flip-card flow where the user only flips and clicks Next —
+    no answer to grade, no stats to bump.
+    """
+    try:
+        card = orchestrator.advance_card(user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    if card is None:
+        return {"done": True}
+    return {"done": False, **card}
+
+
+@app.post("/api/word/seek")
+def seek_word(user_id: str, index: int):
+    """Jump to an arbitrary card index in the deck. Clamped to [0, total)."""
+    try:
+        card = orchestrator.seek_card(user_id, index)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    if card is None:
+        return {"done": True}
+    return {"done": False, **card}
+
+
+@app.post("/api/word/sentences")
+def word_sentences(user_id: str, count: int = 3):
+    """Generate example sentences using the current card's word."""
+    if count < 1 or count > 10:
+        raise HTTPException(status_code=400, detail="count must be between 1 and 10.")
+    try:
+        return orchestrator.generate_word_sentences(user_id, count=count)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    except LookupError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except LLMValidationError as e:
+        raise HTTPException(status_code=502, detail=f"LLM output invalid: {e}")
+
+
 @app.post("/api/review")
 def review(req: ReviewRequest):
     try:
@@ -203,13 +264,27 @@ def get_progress(user_id: str):
         raise HTTPException(status_code=404, detail="Session not found.")
 
 
+@app.get("/api/vocabulary")
+def get_vocabulary(user_id: str):
+    """Return the full deck for the given session — words, translations, seen flags."""
+    try:
+        return orchestrator.vocabulary(user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found.")
+
+
 # -- Auth models --------------------------------------------------------------
+
+
+# Password policy: exactly 8 ASCII letters/digits, no special characters.
+# Used for signup, change-password, and reset-password.
+PASSWORD_PATTERN = r"^[A-Za-z0-9]{8}$"
 
 
 class SignupRequest(BaseModel):
     email: str = Field(..., max_length=200)
     name: str = Field(..., min_length=1, max_length=100)
-    password: str = Field(..., min_length=8, max_length=200)
+    password: str = Field(..., min_length=8, max_length=8, pattern=PASSWORD_PATTERN)
 
 
 class VerifyOtpRequest(BaseModel):
@@ -224,11 +299,11 @@ class SigninRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., max_length=200)
-    new_password: str = Field(..., min_length=8, max_length=200)
+    new_password: str = Field(..., min_length=8, max_length=8, pattern=PASSWORD_PATTERN)
 
 
 class ResetPasswordRequest(BaseModel):
-    new_password: str = Field(..., min_length=8, max_length=200)
+    new_password: str = Field(..., min_length=8, max_length=8, pattern=PASSWORD_PATTERN)
 
 
 class LanguageRequest(BaseModel):
@@ -329,6 +404,41 @@ def reset_password(
 def delete_account(email: str = Depends(auth_service.get_current_user_email)):
     user_store.delete(email)
     return {"ok": True}
+
+
+# -- History --------------------------------------------------------------
+
+
+@app.get("/api/history")
+def list_history(email: str = Depends(auth_service.get_current_user_email)):
+    """Vocabulary upload history for the current user — metadata only.
+
+    Words for a given entry are fetched lazily via /api/history/{id}.
+    """
+    return {"items": user_store.list_uploads(email)}
+
+
+@app.get("/api/history/{upload_id}")
+def get_history_entry(
+    upload_id: int,
+    email: str = Depends(auth_service.get_current_user_email),
+):
+    rec = user_store.get_upload(email, upload_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Upload not found.")
+    return rec
+
+
+@app.post("/api/history/{upload_id}/restore")
+def restore_history_entry(
+    upload_id: int,
+    email: str = Depends(auth_service.get_current_user_email),
+):
+    rec = user_store.get_upload(email, upload_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Upload not found.")
+    user_id = _session_id_for_email(email)
+    return orchestrator.restore_upload(user_id, rec)
 
 
 @app.get("/api/auth/avatar/{email}")
