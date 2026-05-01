@@ -86,187 +86,11 @@ def test_progress_endpoint(client):
     assert body["current"] == 0
 
 
-def test_vocabulary_endpoint(client):
-    uid = client.post("/api/demo").json()["user_id"]
-    r = client.get(f"/api/vocabulary?user_id={uid}")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["total"] == 12
-    assert body["current_index"] == 0
-    assert isinstance(body["vocabulary"], list)
-    assert len(body["vocabulary"]) == 12
-    first = body["vocabulary"][0]
-    assert first["index"] == 0
-    assert first["word"] == "hola"
-    assert first["translation"] == "hello"
-    assert first["seen"] is False
-
-
-def test_vocabulary_unknown_session(client):
-    r = client.get("/api/vocabulary?user_id=u_nope")
-    assert r.status_code == 404
-
-
-def test_seek_endpoint_jumps_to_index(client):
-    uid = client.post("/api/demo").json()["user_id"]
-    r = client.post(f"/api/word/seek?user_id={uid}&index=4")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["done"] is False
-    assert body["index"] == 4
-    # Position is persisted: the next "next word" lands here too.
-    nxt = client.get(f"/api/word/next?user_id={uid}").json()
-    assert nxt["index"] == 4
-
-
-def test_seek_endpoint_clamps_out_of_range(client):
-    uid = client.post("/api/demo").json()["user_id"]
-    r = client.post(f"/api/word/seek?user_id={uid}&index=999")
-    assert r.status_code == 200
-    assert r.json()["index"] == 11  # demo deck has 12 entries
-
-
-def test_seek_endpoint_unknown_session(client):
-    r = client.post("/api/word/seek?user_id=u_nope&index=0")
-    assert r.status_code == 404
-
-
-def test_word_sentences_endpoint(client):
-    uid = client.post("/api/demo").json()["user_id"]
-    r = client.post(f"/api/word/sentences?user_id={uid}&count=3")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["word"] == "hola"
-    assert body["language"] == "Spanish"
-    assert isinstance(body["sentences"], list)
-    assert len(body["sentences"]) == 3
-
-
-def test_word_sentences_default_count(client):
-    uid = client.post("/api/demo").json()["user_id"]
-    r = client.post(f"/api/word/sentences?user_id={uid}")
-    assert r.status_code == 200
-    assert len(r.json()["sentences"]) == 3
-
-
-def test_word_sentences_invalid_count(client):
-    uid = client.post("/api/demo").json()["user_id"]
-    r = client.post(f"/api/word/sentences?user_id={uid}&count=0")
-    assert r.status_code == 400
-    r = client.post(f"/api/word/sentences?user_id={uid}&count=99")
-    assert r.status_code == 400
-
-
-def test_word_sentences_unknown_session(client):
-    r = client.post("/api/word/sentences?user_id=u_nope")
-    assert r.status_code == 404
-
-
-# -- Upload history -------------------------------------------------------
-
-
-def _signup_and_token(client, main_module, email="hist@x.com", name="Hist"):
-    """Helper: create a verified user and return a Bearer header dict."""
-    out = client.post(
-        "/api/auth/signup",
-        json={"email": email, "name": name, "password": "Pass1234"},
-    ).json()
-    code = out["dev_code"]
-    tok = client.post(
-        "/api/auth/verify-otp", json={"email": email, "code": code}
-    ).json()["token"]
-    return {"Authorization": f"Bearer {tok}"}
-
-
-def test_history_records_authenticated_upload(client, monkeypatch):
-    import main as main_module
-    headers = _signup_and_token(client, main_module)
-    text = "uno - one\ndos - two\ntres - three"
-    monkeypatch.setattr(main_module.orchestrator.file_agent, "read_pdf_local", lambda b: text)
-    files = {"file": ("vocabulary.pdf", b"%PDF-1.4", "application/pdf")}
-    client.post(
-        "/api/upload", headers=headers, files=files,
-        data={"native_language": "English", "target_language": "Spanish"},
-    )
-
-    r = client.get("/api/history", headers=headers)
-    assert r.status_code == 200
-    items = r.json()["items"]
-    assert len(items) == 1
-    assert items[0]["total"] == 3
-    assert items[0]["filename"] == "vocabulary.pdf"
-    assert items[0]["target_language"] == "Spanish"
-
-
-def test_history_anonymous_upload_not_recorded(client, monkeypatch):
-    import main as main_module
-    text = "uno - one"
-    monkeypatch.setattr(main_module.orchestrator.file_agent, "read_pdf_local", lambda b: text)
-    files = {"file": ("vocabulary.pdf", b"%PDF-1.4", "application/pdf")}
-    client.post("/api/upload", files=files,
-                data={"native_language": "English", "target_language": "Spanish"})
-
-    # No Authorization header → no email → must require auth, return 401.
-    r = client.get("/api/history")
-    assert r.status_code == 401
-
-
-def test_history_get_entry_returns_full_words(client, monkeypatch):
-    import main as main_module
-    headers = _signup_and_token(client, main_module)
-    text = "uno - one\ndos - two"
-    monkeypatch.setattr(main_module.orchestrator.file_agent, "read_pdf_local", lambda b: text)
-    files = {"file": ("vocabulary.pdf", b"%PDF-1.4", "application/pdf")}
-    client.post(
-        "/api/upload", headers=headers, files=files,
-        data={"native_language": "English", "target_language": "Spanish"},
-    )
-    items = client.get("/api/history", headers=headers).json()["items"]
-    upload_id = items[0]["id"]
-
-    r = client.get(f"/api/history/{upload_id}", headers=headers)
-    assert r.status_code == 200
-    body = r.json()
-    assert body["total"] == 2
-    assert body["vocabulary"][0]["word"] == "uno"
-
-
-def test_history_restore_replays_session(client, monkeypatch):
-    import main as main_module
-    headers = _signup_and_token(client, main_module)
-    text = "uno - one\ndos - two\ntres - three"
-    monkeypatch.setattr(main_module.orchestrator.file_agent, "read_pdf_local", lambda b: text)
-    files = {"file": ("vocabulary.pdf", b"%PDF-1.4", "application/pdf")}
-    client.post(
-        "/api/upload", headers=headers, files=files,
-        data={"native_language": "English", "target_language": "Spanish"},
-    )
-    items = client.get("/api/history", headers=headers).json()["items"]
-    upload_id = items[0]["id"]
-
-    r = client.post(f"/api/history/{upload_id}/restore", headers=headers)
-    assert r.status_code == 200
-    body = r.json()
-    assert body["total"] == 3
-    # Session is now usable: /api/word/next should return the first card.
-    nxt = client.get(f"/api/word/next?user_id={body['user_id']}").json()
-    assert nxt["word"] == "uno"
-
-
-def test_history_unknown_upload_returns_404(client, monkeypatch):
-    import main as main_module
-    headers = _signup_and_token(client, main_module)
-    r = client.get("/api/history/99999", headers=headers)
-    assert r.status_code == 404
-    r = client.post("/api/history/99999/restore", headers=headers)
-    assert r.status_code == 404
-
-
 def test_upload_endpoint(client, monkeypatch):
     import main as main_module
     text = "uno - one\ndos - two\ntres - three"
     monkeypatch.setattr(main_module.orchestrator.file_agent, "read_pdf_local", lambda b: text)
-    files = {"file": ("vocabulary.pdf", b"%PDF-1.4 stub", "application/pdf")}
+    files = {"file": ("words.pdf", b"%PDF-1.4 stub", "application/pdf")}
     r = client.post("/api/upload", files=files, data={"native_language": "English", "target_language": "Spanish"})
     assert r.status_code == 200
     body = r.json()
@@ -284,7 +108,7 @@ def test_upload_with_auth_uses_deterministic_id(client, monkeypatch):
     token = main_module.auth_service.issue_jwt("authed@x.com")
     expected_id = "u_" + hashlib.sha256(b"authed@x.com").hexdigest()[:16]
     headers = {"Authorization": f"Bearer {token}"}
-    files = {"file": ("vocabulary.pdf", b"%PDF-1.4", "application/pdf")}
+    files = {"file": ("words.pdf", b"%PDF-1.4", "application/pdf")}
     r1 = client.post("/api/upload", files=files, headers=headers, data={"native_language": "English", "target_language": "Spanish"})
     assert r1.json()["user_id"] == expected_id
     # Second upload — same id, content replaces.

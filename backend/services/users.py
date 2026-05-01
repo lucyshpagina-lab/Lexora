@@ -42,19 +42,6 @@ class UserStore:
                     expires_at INTEGER NOT NULL,
                     attempts INTEGER NOT NULL DEFAULT 0
                 );
-                CREATE TABLE IF NOT EXISTS vocabulary_uploads (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    email TEXT NOT NULL,
-                    user_id TEXT NOT NULL,
-                    filename TEXT NOT NULL,
-                    total INTEGER NOT NULL,
-                    target_language TEXT NOT NULL,
-                    native_language TEXT NOT NULL,
-                    vocabulary TEXT NOT NULL,
-                    created_at INTEGER NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS idx_vocab_uploads_email_created
-                    ON vocabulary_uploads(email, created_at DESC);
                 """
             )
 
@@ -123,63 +110,6 @@ class UserStore:
         with self._lock, self._conn() as c:
             c.execute("DELETE FROM users WHERE email = ?", (email,))
             c.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
-            c.execute("DELETE FROM vocabulary_uploads WHERE email = ?", (email,))
-
-    # -- Vocabulary upload history ----------------------------------------
-
-    def add_upload(
-        self,
-        email: str,
-        user_id: str,
-        filename: str,
-        total: int,
-        target_language: str,
-        native_language: str,
-        vocabulary: List[Dict[str, str]],
-    ) -> int:
-        """Append a successful upload to the user's history. Returns the row id."""
-        with self._lock, self._conn() as c:
-            cur = c.execute(
-                "INSERT INTO vocabulary_uploads "
-                "(email, user_id, filename, total, target_language, native_language, vocabulary, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    email,
-                    user_id,
-                    filename,
-                    total,
-                    target_language,
-                    native_language,
-                    json.dumps(vocabulary, ensure_ascii=False),
-                    int(time.time()),
-                ),
-            )
-            return cur.lastrowid
-
-    def list_uploads(self, email: str) -> List[Dict[str, Any]]:
-        """Metadata-only listing for the History page (cheap for big decks)."""
-        with self._conn() as c:
-            rows = c.execute(
-                "SELECT id, filename, total, target_language, native_language, created_at "
-                "FROM vocabulary_uploads WHERE email = ? ORDER BY created_at DESC",
-                (email,),
-            ).fetchall()
-            return [dict(r) for r in rows]
-
-    def get_upload(self, email: str, upload_id: int) -> Optional[Dict[str, Any]]:
-        """Full upload record incl. parsed vocabulary."""
-        with self._conn() as c:
-            row = c.execute(
-                "SELECT id, filename, total, target_language, native_language, "
-                "vocabulary, user_id, created_at "
-                "FROM vocabulary_uploads WHERE email = ? AND id = ?",
-                (email, upload_id),
-            ).fetchone()
-            if not row:
-                return None
-            d = dict(row)
-            d["vocabulary"] = json.loads(d["vocabulary"])
-            return d
 
 
 class OTPStore:

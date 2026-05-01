@@ -21,8 +21,6 @@ def client(tmp_path, monkeypatch):
 
 
 def _signup(client, email="a@b.com", name="Lucy", password="hunter22"):
-    # Default password is exactly 8 alphanumeric chars to satisfy the
-    # server-side policy (^[A-Za-z0-9]{8}$).
     return client.post(
         "/api/auth/signup",
         json={"email": email, "name": name, "password": password},
@@ -36,33 +34,6 @@ def _verify_via_peek(main_module, client, email):
 
 
 # -- signup ------------------------------------------------------------------
-
-
-def test_signup_rejects_short_password(client):
-    _, c = client
-    r = c.post(
-        "/api/auth/signup",
-        json={"email": "x@y.com", "name": "X", "password": "abc12"},  # 5 chars
-    )
-    assert r.status_code == 422
-
-
-def test_signup_rejects_special_chars_in_password(client):
-    _, c = client
-    r = c.post(
-        "/api/auth/signup",
-        json={"email": "x@y.com", "name": "X", "password": "abc!1234"},  # has '!'
-    )
-    assert r.status_code == 422
-
-
-def test_signup_rejects_too_long_password(client):
-    _, c = client
-    r = c.post(
-        "/api/auth/signup",
-        json={"email": "x@y.com", "name": "X", "password": "abcdef123"},  # 9 chars
-    )
-    assert r.status_code == 422
 
 
 def test_signup_creates_pending_user(client):
@@ -230,14 +201,14 @@ def test_change_password_flow(client):
     r = c.post(
         "/api/auth/change-password",
         headers=headers,
-        json={"old_password": "hunter22", "new_password": "newpass8"},
+        json={"old_password": "hunter22", "new_password": "newpass99"},
     )
     assert r.status_code == 200
     # Old password should fail now.
     r1 = c.post("/api/auth/signin", json={"email": "a@b.com", "password": "hunter22"})
     assert r1.status_code == 401
     # New password works.
-    r2 = c.post("/api/auth/signin", json={"email": "a@b.com", "password": "newpass8"})
+    r2 = c.post("/api/auth/signin", json={"email": "a@b.com", "password": "newpass99"})
     assert r2.status_code == 200
 
 
@@ -247,7 +218,7 @@ def test_change_password_wrong_old_returns_400(client):
     r = c.post(
         "/api/auth/change-password",
         headers=headers,
-        json={"old_password": "wrong", "new_password": "newpass8"},
+        json={"old_password": "wrong", "new_password": "newpass99"},
     )
     assert r.status_code == 400
 

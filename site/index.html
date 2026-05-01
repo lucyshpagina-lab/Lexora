@@ -129,32 +129,32 @@
         {
           "@type": "Question",
           "name": "Is Lexora free?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes — while Lexora is in beta, it's free. No card, no ads, no hidden doors: your word-deck lives inside your own browser, like a notebook kept by the hearth — only you open it. There's nothing to lose by trying it; only a quiet place to return to." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Lexora is free while in beta — no card, no ads. Your vocabulary deck lives in your browser and never leaves it." }
         },
         {
           "@type": "Question",
           "name": "What makes Lexora different from Duolingo, Anki, Memrise, Quizlet, Babbel, Busuu or Rosetta Stone?",
-          "acceptedAnswer": { "@type": "Answer", "text": "The big apps clatter like a fair: streaks, owls, gems, punishment for a missed day. Lexora is a quiet workshop by the spring — where translators and philology students come to upload the very vocabulary they need, walk every CEFR level layered with real grammar and philology, and turn study into a calm daily rite. Not a click-farm — a craft that deepens with every turn of the year." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Lexora is the calm atelier where translators and philology students go when streaks, gems and cartoon owls aren't the point. Upload the vocabulary you actually need, walk every CEFR level layered with real grammar and philology, and replace gamified noise with a quiet daily ritual that deepens craft instead of farming clicks." }
         },
         {
           "@type": "Question",
           "name": "Which languages does Lexora support?",
-          "acceptedAnswer": { "@type": "Answer", "text": "For now — English and French, at every CEFR level, from the first step (A1) to full mastery (C2). For translators there's a separate philology track — a bard's path that leads deeper, down to the roots of words. Two roads, but both walked to the end, not abandoned halfway." }
+          "acceptedAnswer": { "@type": "Answer", "text": "English and French at every CEFR level from A1 (Breakthrough) to C2 (Mastery), including a dedicated philology track for translators." }
         },
         {
           "@type": "Question",
           "name": "Can I upload my own vocabulary?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Upload a .pdf where each line is term — translation, for example: flâner — to stroll. Lexora parses the list, removes duplicates and weaves it into a deck of flashcards. It's your dictionary, your book — we only bind it into a shape you can return to every day, like runes on a familiar stone." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes — upload a .pdf or .txt file with one term — translation per line. Lexora parses and de-duplicates the entries, then drills them on flashcards." }
         },
         {
           "@type": "Question",
           "name": "Does Lexora cover grammar as well as vocabulary?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. At every CEFR level two threads are woven together — vocabulary and grammar; and at C1–C2 a philology track is added: etymology, historical linguistics, sociolinguistics, translation theory. Words without grammar are a handful of stones; together they become the wall that holds up the house of your speech." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Every CEFR level includes both lexical themes and grammar topics. C1–C2 add a philology track covering etymology, historical linguistics, sociolinguistics and translation theory." }
         },
         {
           "@type": "Question",
           "name": "Is my data private?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Your deck and your study history stay in your own browser's localStorage — they don't travel to any server, at least not in the demo. It's like a journal in a drawer: only you hold the key, and Lexora is just the walls that shield the fire from the wind." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Your deck and study history stay in localStorage in your own browser. Nothing is uploaded to a server in the demo." }
         }
       ]
     }
@@ -578,92 +578,6 @@
       <path d="M159 920 l 3 4 l -6 0 z" stroke-width="0.9"/>
     </g>
 
-    <!-- ===== druid grove enhancements (added 2026-04) ============== -->
-
-    <!-- constellation: small star cluster above the crown -->
-    <g class="grove-stars" fill="#EEEFE2">
-      <circle cx="60"  cy="30"  r="0.9" opacity="0.85"/>
-      <circle cx="92"  cy="14"  r="1.2" opacity="0.95"/>
-      <circle cx="118" cy="38"  r="0.7" opacity="0.7"/>
-      <circle cx="155" cy="8"   r="1.4" opacity="1"/>
-      <circle cx="195" cy="22"  r="0.9" opacity="0.85"/>
-      <circle cx="232" cy="44"  r="1.1" opacity="0.9"/>
-      <circle cx="268" cy="18"  r="0.7" opacity="0.7"/>
-      <circle cx="290" cy="52"  r="1.0" opacity="0.85"/>
-      <!-- thin connecting line — Cassiopeia-ish -->
-      <path d="M60 30 L92 14 L118 38 L155 8 L195 22 L232 44 L268 18 L290 52"
-            fill="none" stroke="#C8E26A" stroke-width="0.4" opacity="0.35"/>
-    </g>
-
-    <!-- hanging vines from the crown — three strands with leaves -->
-    <g class="grove-vines" fill="none" stroke-linecap="round">
-      <!-- left vine -->
-      <path d="M84 250 Q 80 320 88 380 Q 96 430 84 470"
-            stroke="#3D5444" stroke-width="1.6" opacity="0.75"/>
-      <ellipse cx="80" cy="305" rx="6" ry="3" fill="#A07859" opacity="0.7" stroke="none"/>
-      <ellipse cx="92" cy="395" rx="5" ry="2.5" fill="#3D5444" opacity="0.85" stroke="none"/>
-      <ellipse cx="80" cy="465" rx="6" ry="3" fill="#A07859" opacity="0.65" stroke="none"/>
-      <!-- center vine -->
-      <path d="M180 230 Q 188 300 178 360 Q 170 410 184 460"
-            stroke="#3D5444" stroke-width="1.4" opacity="0.7"/>
-      <ellipse cx="184" cy="285" rx="5" ry="2.5" fill="#3D5444" opacity="0.85" stroke="none"/>
-      <ellipse cx="174" cy="370" rx="6" ry="3" fill="#A07859" opacity="0.7" stroke="none"/>
-      <!-- right vine -->
-      <path d="M250 270 Q 256 330 244 380 Q 236 430 252 480"
-            stroke="#3D5444" stroke-width="1.6" opacity="0.7"/>
-      <ellipse cx="256" cy="320" rx="6" ry="3" fill="#A07859" opacity="0.7" stroke="none"/>
-      <ellipse cx="240" cy="400" rx="5" ry="2.5" fill="#3D5444" opacity="0.85" stroke="none"/>
-    </g>
-
-    <!-- mushroom cluster at the base — three caps with spots -->
-    <g class="grove-mushrooms">
-      <!-- big cap -->
-      <ellipse cx="116" cy="1042" rx="14" ry="9" fill="#A07859"/>
-      <rect x="111" y="1042" width="10" height="14" rx="3" fill="#EEEFE2"/>
-      <ellipse cx="111" cy="1041" r="0" rx="2" ry="1.2" fill="#EEEFE2" opacity="0.85"/>
-      <ellipse cx="120" cy="1038" rx="2" ry="1.4" fill="#EEEFE2" opacity="0.9"/>
-      <ellipse cx="115" cy="1044" rx="1.5" ry="1" fill="#EEEFE2" opacity="0.8"/>
-      <!-- medium cap -->
-      <ellipse cx="138" cy="1048" rx="9" ry="6" fill="#A07859"/>
-      <rect x="135" y="1048" width="6" height="10" rx="2" fill="#EEEFE2"/>
-      <ellipse cx="140" cy="1046" rx="1.4" ry="0.9" fill="#EEEFE2" opacity="0.85"/>
-      <!-- small cap -->
-      <ellipse cx="195" cy="1050" rx="7" ry="5" fill="#A07859"/>
-      <rect x="192" y="1050" width="5" height="8" rx="2" fill="#EEEFE2"/>
-      <ellipse cx="196" cy="1048" rx="1.2" ry="0.8" fill="#EEEFE2" opacity="0.85"/>
-    </g>
-
-    <!-- perched owl on a branch (mid-crown right side) -->
-    <g class="grove-owl">
-      <ellipse cx="244" cy="240" rx="11" ry="13" fill="#3D5444"/>
-      <ellipse cx="240" cy="232" rx="3" ry="3" fill="#EEEFE2"/>
-      <ellipse cx="248" cy="232" rx="3" ry="3" fill="#EEEFE2"/>
-      <circle  cx="240" cy="232" r="1.2" fill="#1F3A2C"/>
-      <circle  cx="248" cy="232" r="1.2" fill="#1F3A2C"/>
-      <path d="M242 238 L 244 241 L 246 238 Z" fill="#A07859"/>
-      <!-- ear tufts -->
-      <path d="M236 226 L 233 220 L 239 224 Z" fill="#3D5444"/>
-      <path d="M252 226 L 255 220 L 249 224 Z" fill="#3D5444"/>
-      <!-- branch -->
-      <path d="M230 254 L 260 252" stroke="#1F3A2C" stroke-width="2" stroke-linecap="round" fill="none"/>
-    </g>
-
-    <!-- floating crystal orbs — magical refractive glow -->
-    <g class="grove-orbs">
-      <g>
-        <circle cx="50"  cy="500" r="6" fill="#C8E26A" opacity="0.18"/>
-        <circle cx="50"  cy="500" r="2.4" fill="#EEEFE2"/>
-      </g>
-      <g>
-        <circle cx="285" cy="620" r="5" fill="#C8E26A" opacity="0.18"/>
-        <circle cx="285" cy="620" r="2" fill="#EEEFE2"/>
-      </g>
-      <g>
-        <circle cx="36"  cy="940" r="5" fill="#C8E26A" opacity="0.18"/>
-        <circle cx="36"  cy="940" r="2" fill="#EEEFE2"/>
-      </g>
-    </g>
-
     <!-- mist veil overlay (fades top & bottom) -->
     <rect width="320" height="1200" fill="url(#mist)"/>
   </svg>
@@ -683,37 +597,11 @@
       <span class="logo__word">Le<span class="x">x</span>ora</span>
     </a>
 
-    <nav class="nav__links" aria-label="Primary" data-auth-only></nav>
+    <nav class="nav__links" aria-label="Primary" data-auth-only>
+      <a href="profile.html">Profile</a>
+    </nav>
 
     <div class="nav__cta">
-      <a href="profile.html" class="btn-druid" data-auth-only aria-label="Back to my profile">
-        <svg class="btn-druid__icon" viewBox="0 0 24 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M12 3 L6 14 L5 25 L19 25 L18 14 Z" fill="#1F3A2C"/>
-          <ellipse cx="12" cy="11" rx="2.4" ry="3" fill="#0A1A12"/>
-          <path d="M4.5 3 L4.5 27" stroke="#A07859" stroke-width="1.4" stroke-linecap="round"/>
-          <circle cx="4.5" cy="13" r="3.6" fill="#E8C055" opacity="0.35"/>
-          <circle cx="4.5" cy="13" r="2.2" fill="#E8C055"/>
-          <circle cx="4.5" cy="13" r="1" fill="#FFF6D6"/>
-        </svg>
-        <span class="btn-druid__text">Back to my profile</span>
-      </a>
-
-      <div class="profile-menu" id="home-profile-menu" data-auth-only>
-        <button type="button" class="profile-menu__trigger" aria-haspopup="menu" aria-expanded="false">
-          <span data-username class="profile-name"></span>
-          <span class="profile-avatar">
-            <img data-profile-avatar alt="" src="assets/favicon.svg"/>
-          </span>
-        </button>
-        <ul class="profile-menu__panel" role="menu">
-          <li role="none"><a role="menuitem" href="#" data-action="continue"><span class="dot dot--clay"></span> Continue learning</a></li>
-          <li role="none"><a role="menuitem" href="#" data-action="change-password"><span class="dot dot--ink"></span> Change password</a></li>
-          <li role="none"><a role="menuitem" href="#" data-action="delete-account"><span class="dot dot--rust"></span> Delete account</a></li>
-          <li role="separator" class="profile-menu__sep"></li>
-          <li role="none"><a role="menuitem" href="#" data-action="signout"><span class="dot dot--moss"></span> Sign out</a></li>
-        </ul>
-      </div>
-
       <div class="auth-menu" data-anon-only>
         <button type="button" class="auth-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Sign in or sign up">
           <svg class="auth-trigger__mush" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -751,6 +639,8 @@
           <li><a href="register.html" role="menuitem">Sign up</a></li>
         </ul>
       </div>
+      <span class="tag tag--accent" data-auth-only data-username></span>
+      <a href="#" class="btn btn--ghost" data-auth-only data-logout>Sign out</a>
     </div>
   </div>
 </header>
@@ -798,7 +688,7 @@
       <li class="step-card reveal">
         <span class="step-card__num">02</span>
         <h3>Make your deck</h3>
-        <p>Words &amp; meanings in <code>vocabulary.pdf</code>.</p>
+        <p>Words &amp; meanings in <code>my_vocabulary.pdf</code>.</p>
       </li>
       <li class="step-card reveal">
         <span class="step-card__num">03</span>
@@ -826,109 +716,36 @@
 
     <details class="faq__item reveal">
       <summary>Is Lexora free?</summary>
-      <p>Yes &mdash; while Lexora is in beta, it&rsquo;s free. No card, no ads, no hidden doors: your word-deck lives inside your own browser, like a notebook kept by the hearth &mdash; only you open it. There&rsquo;s nothing to lose by trying it; only a quiet place to return to.</p>
+      <p>Yes. Lexora is free while in beta — no card, no ads. Your vocabulary deck lives in your browser and never leaves it.</p>
     </details>
 
     <details class="faq__item reveal">
       <summary>What makes Lexora different from Duolingo, Anki, Memrise, Quizlet, Babbel, Busuu or Rosetta Stone?</summary>
-      <p>The big apps clatter like a fair: streaks, owls, gems, punishment for a missed day. Lexora is a quiet workshop by the spring &mdash; where translators and philology students come to upload the very vocabulary they need, walk every CEFR level layered with real grammar and philology, and turn study into a calm daily rite. Not a click-farm &mdash; a craft that deepens with every turn of the year.</p>
+      <p>Lexora is the calm atelier where translators and philology students go when streaks, gems and cartoon owls aren&rsquo;t the point. Upload the vocabulary you actually need, walk every CEFR level layered with real grammar and philology, and replace gamified noise with a quiet daily ritual that deepens craft instead of farming clicks.</p>
     </details>
 
     <details class="faq__item reveal">
       <summary>Which languages does Lexora support?</summary>
-      <p>For now &mdash; English and French, at every CEFR level, from the first step (A1) to full mastery (C2). For translators there&rsquo;s a separate philology track &mdash; a bard&rsquo;s path that leads deeper, down to the roots of words. Two roads, but both walked to the end, not abandoned halfway.</p>
+      <p>English and French at every CEFR level from A1 (Breakthrough) to C2 (Mastery), including a dedicated philology track for translators.</p>
     </details>
 
     <details class="faq__item reveal">
       <summary>Can I upload my own vocabulary?</summary>
-      <p>Yes. Upload a <code>.pdf</code> where each line is <em>term &mdash; translation</em>, for example: <code>fl&acirc;ner &mdash; to stroll</code>. Lexora parses the list, removes duplicates and weaves it into a deck of flashcards. It&rsquo;s your dictionary, your book &mdash; we only bind it into a shape you can return to every day, like runes on a familiar stone.</p>
+      <p>Yes — upload a <code>.pdf</code> or <code>.txt</code> file with one <em>term — translation</em> per line. Lexora parses and de-duplicates the entries, then drills them on flashcards.</p>
     </details>
 
     <details class="faq__item reveal">
       <summary>Does Lexora cover grammar as well as vocabulary?</summary>
-      <p>Yes. At every CEFR level two threads are woven together &mdash; vocabulary and grammar; and at C1&ndash;C2 a philology track is added: etymology, historical linguistics, sociolinguistics, translation theory. Words without grammar are a handful of stones; together they become the wall that holds up the house of your speech.</p>
+      <p>Every CEFR level includes both lexical themes and grammar topics. C1–C2 add a philology track covering etymology, historical linguistics, sociolinguistics and translation theory.</p>
     </details>
 
     <details class="faq__item reveal">
       <summary>Is my data private?</summary>
-      <p>Your deck and your study history stay in your own browser&rsquo;s <code>localStorage</code> &mdash; they don&rsquo;t travel to any server, at least not in the demo. It&rsquo;s like a journal in a drawer: only you hold the key, and Lexora is just the walls that shield the fire from the wind.</p>
+      <p>Your deck and study history stay in <code>localStorage</code> in your own browser. Nothing is uploaded to a server in the demo.</p>
     </details>
   </div>
 </section>
 
-<script src="js/api.js" defer></script>
 <script src="js/core.js" defer></script>
-<script defer>
-window.addEventListener('DOMContentLoaded', () => {
-  const menu = document.getElementById('home-profile-menu');
-  if (!menu || !window.Lexora || !Lexora.profile) return;
-  const profile = Lexora.profile.get();
-  if (!profile) return;
-
-  const continueLink = menu.querySelector('[data-action="continue"]');
-  const continueItem = continueLink?.closest('li');
-  if (continueItem) continueItem.hidden = !profile.session_id;
-
-  const trigger = menu.querySelector('.profile-menu__trigger');
-  trigger?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const open = menu.classList.toggle('is-open');
-    trigger.setAttribute('aria-expanded', String(open));
-  });
-  document.addEventListener('click', (e) => { if (!menu.contains(e.target)) menu.classList.remove('is-open'); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') menu.classList.remove('is-open'); });
-
-  continueLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    location.href = 'profile.html#vocab-section';
-  });
-
-  menu.querySelector('[data-action="change-password"]')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const result = await Lexora.promptModal({
-      title: 'Reset password',
-      message: 'Enter a new password — no need to remember the old one.',
-      fields: [
-        { name: 'new_password', label: 'New password', type: 'password', minLength: 8, placeholder: 'min 8 characters', autocomplete: 'new-password' },
-      ],
-      confirmLabel: 'Update password',
-    });
-    if (!result) return;
-    try {
-      await Lexora.api('/api/auth/reset-password', {
-        method: 'POST', body: { new_password: result.new_password },
-      });
-      await Lexora.alertModal({ title: 'Password updated', message: 'Your new password is now in effect.' });
-    } catch (err) {
-      await Lexora.alertModal({ title: 'Could not update password', message: err.message || 'Please try again.', kind: 'danger' });
-    }
-  });
-
-  menu.querySelector('[data-action="delete-account"]')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const ok = await Lexora.confirmModal({
-      title: 'Delete account',
-      message: 'Delete your account permanently? This cannot be undone.',
-      confirmLabel: 'Delete account',
-      danger: true,
-    });
-    if (!ok) return;
-    try {
-      await Lexora.api('/api/auth/me', { method: 'DELETE' });
-      Lexora.token.clear();
-      Lexora.profile.clear();
-      await Lexora.alertModal({ title: 'Account deleted', message: 'Your account and data have been removed. Goodbye for now.' });
-      location.href = 'index.html';
-    } catch (err) {
-      await Lexora.alertModal({ title: 'Could not delete account', message: err.message || 'Please try again.', kind: 'danger' });
-    }
-  });
-
-  menu.querySelector('[data-action="signout"]')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    Lexora.signOut();
-  });
-});
-</script>
 </body>
 </html>

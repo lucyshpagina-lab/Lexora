@@ -181,21 +181,15 @@
   // ============== site-style modals (alert / confirm / prompt) ==============
   const _esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  function _buildModal({ title, message, messageHtml, fields, kind, danger, confirmLabel, cancelLabel, withCancel }) {
+  function _buildModal({ title, message, fields, kind, danger, confirmLabel, cancelLabel, withCancel }) {
     const overlay = document.createElement('div');
     overlay.className = 'lex-modal__overlay';
-    const fieldsHtml = (fields || []).map((f) => {
-      const extra = [
-        f.maxLength ? `maxlength="${Number(f.maxLength)}"` : '',
-        f.pattern ? `pattern="${_esc(f.pattern)}"` : '',
-        f.title ? `title="${_esc(f.title)}"` : '',
-      ].filter(Boolean).join(' ');
-      return `
+    const fieldsHtml = (fields || []).map((f) => `
       <label class="lex-modal__field">
         <span>${_esc(f.label || f.name)}</span>
-        <input type="${_esc(f.type || 'text')}" name="${_esc(f.name)}" placeholder="${_esc(f.placeholder || '')}" autocomplete="${_esc(f.autocomplete || 'off')}" ${extra}/>
-      </label>`;
-    }).join('');
+        <input type="${_esc(f.type || 'text')}" name="${_esc(f.name)}" placeholder="${_esc(f.placeholder || '')}" autocomplete="${_esc(f.autocomplete || 'off')}"/>
+      </label>
+    `).join('');
     overlay.innerHTML = `
       <div class="lex-modal" role="dialog" aria-modal="true">
         <div class="lex-modal__leaves" aria-hidden="true">
@@ -206,7 +200,7 @@
         </div>
         <h3 class="lex-modal__title">${_esc(title || '')}</h3>
         <div class="lex-modal__body">
-          ${messageHtml ? messageHtml : (message ? `<p>${_esc(message)}</p>` : '')}
+          ${message ? `<p>${_esc(message)}</p>` : ''}
           ${fieldsHtml}
         </div>
         <div class="lex-modal__error" role="alert" hidden></div>
@@ -249,8 +243,8 @@
     setTimeout(() => overlay.querySelector('[data-act="ok"]').focus(), 50);
   });
 
-  Lexora.promptModal = ({ title = 'Enter', message = '', messageHtml = '', fields = [], confirmLabel = 'Save', cancelLabel = 'Cancel' } = {}) => new Promise((resolve) => {
-    const overlay = _buildModal({ title, message, messageHtml, fields, confirmLabel, cancelLabel, withCancel: true });
+  Lexora.promptModal = ({ title = 'Enter', message = '', fields = [], confirmLabel = 'Save', cancelLabel = 'Cancel' } = {}) => new Promise((resolve) => {
+    const overlay = _buildModal({ title, message, fields, confirmLabel, cancelLabel, withCancel: true });
     _openModal(overlay);
     const inputs = overlay.querySelectorAll('input');
     const errBox = overlay.querySelector('.lex-modal__error');

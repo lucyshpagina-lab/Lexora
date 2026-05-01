@@ -69,14 +69,7 @@
   });
 
   const APP_BASE = 'http://127.0.0.1:8000/app/';
-  const buildAppHref = (sid) => {
-    // Pass the JWT through the URL fragment so the React app on a different
-    // origin can hydrate its own auth state. Fragments are not sent to the
-    // server, so this stays local to the browser.
-    const token = Lexora.token.get();
-    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
-    return `${APP_BASE}#user_id=${encodeURIComponent(sid)}${tokenParam}`;
-  };
+  const buildAppHref = (sid) => `${APP_BASE}#user_id=${encodeURIComponent(sid)}`;
 
   const continueLink = document.querySelector('[data-action="continue"]');
   const continueItem = continueLink?.closest('li');
@@ -92,48 +85,17 @@
     }
   });
 
-  // History → open the React app with the History view active.
-  document.querySelector('[data-action="history"]')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    const sid = profile.session_id || '';
-    const token = Lexora.token.get();
-    const params = [];
-    if (sid) params.push(`user_id=${encodeURIComponent(sid)}`);
-    if (token) params.push(`token=${encodeURIComponent(token)}`);
-    params.push('view=history');
-    location.href = `${APP_BASE}#${params.join('&')}`;
-  });
-
-  // Auto-trigger change-password / delete-account when arrived from the
-  // React app's Lucy menu via ?action=… query param.
-  const _action = new URL(location.href).searchParams.get('action');
-  if (_action === 'change-password' || _action === 'delete-account') {
-    // Strip the param so refreshing doesn't re-trigger the modal.
-    history.replaceState(null, '', location.pathname);
-    setTimeout(() => {
-      document.querySelector(`[data-action="${_action}"]`)?.click();
-    }, 60);
-  }
-
   document.querySelector('[data-action="change-password"]')?.addEventListener('click', async (e) => {
     e.preventDefault();
     const result = await Lexora.promptModal({
       title: 'Reset password',
-      message: 'Enter a new password — exactly 8 characters, letters and digits only.',
+      message: 'Enter a new password — no need to remember the old one.',
       fields: [
-        { name: 'new_password', label: 'New password', type: 'password', minLength: 8, maxLength: 8, pattern: '^[A-Za-z0-9]{8}$', placeholder: '8 letters or digits', autocomplete: 'new-password' },
+        { name: 'new_password', label: 'New password', type: 'password', minLength: 8, placeholder: 'min 8 characters', autocomplete: 'new-password' },
       ],
       confirmLabel: 'Update password',
     });
     if (!result) return;
-    if (!/^[A-Za-z0-9]{8}$/.test(result.new_password || '')) {
-      await Lexora.alertModal({
-        title: 'Invalid password',
-        message: 'Password must be exactly 8 characters — letters and digits only.',
-        kind: 'danger',
-      });
-      return;
-    }
     try {
       await Lexora.api('/api/auth/reset-password', {
         method: 'POST', body: { new_password: result.new_password },
@@ -186,16 +148,9 @@
   };
   updateLangButton();
 
-  // Languages explicitly hidden from the picker even if the user once added
-  // them as a custom language. Cheap blocklist; users can manage server-side
-  // entries via the language API.
-  const HIDDEN_LANGUAGES = new Set(['German']);
-
   const renderLangList = () => {
     if (!langList) return;
-    const all = DEFAULT_LANGUAGES.concat(
-        customLanguages.filter((l) => !DEFAULT_LANGUAGES.includes(l) && !HIDDEN_LANGUAGES.has(l))
-      )
+    const all = DEFAULT_LANGUAGES.concat(customLanguages.filter((l) => !DEFAULT_LANGUAGES.includes(l)))
       .sort((a, b) => a.localeCompare(b));
     langList.innerHTML = all.map((lang) => `
       <li role="menuitem" data-lang="${escapeAttr(lang)}" class="${lang === currentLang ? 'is-active' : ''}">
@@ -282,23 +237,12 @@
       startBtn.setAttribute('href', buildAppHref(sessionId));
     }
   };
-  // Persist the "Start your journey" button across reloads: if the user
-  // already has a saved session_id from a previous upload, the button is
-  // visible immediately on page load, not just after a fresh upload.
-  setStartVisible(Boolean(profile.session_id), profile.session_id);
-
-  const REQUIRED_FILENAME = 'vocabulary.pdf';
+  setStartVisible(false);
 
   const handleFile = async (file) => {
-    // Reset the input value so re-selecting the same file (after a fix)
-    // still triggers a fresh `change` event, and stale "err" status from a
-    // prior rejected pick doesn't carry over to a valid one.
-    if (fileInput) fileInput.value = '';
     if (!file) return;
-    // Strict gate: only accept a file literally named vocabulary.pdf.
-    // Case-insensitive match, but no other names allowed (security).
-    if (file.name.toLowerCase() !== REQUIRED_FILENAME) {
-      showStatus('err', `File must be named <code>${REQUIRED_FILENAME}</code>. Rename your file and try again.`);
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+      showStatus('err', 'Only PDF files are accepted (e.g. my_vocabulary.pdf).');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -344,27 +288,12 @@
 
   driveBtn?.addEventListener('click', async (e) => {
     e.preventDefault();
-    // Open the user's actual Drive in a new tab so they can locate their
-    // vocabulary.pdf and copy its share link / file ID.
-    const driveWindow = window.open('https://drive.google.com/drive/my-drive', '_blank', 'noopener,noreferrer');
-    if (!driveWindow) {
-      showStatus('err', 'Google Drive not found. Please allow pop-ups or open <a href="https://drive.google.com" target="_blank" rel="noopener">drive.google.com</a> manually.');
-      return;
-    }
     const result = await Lexora.promptModal({
       title: 'Read from Google Drive',
-      messageHtml: `
-        <p>Your Drive opened in a new tab. Follow these steps:</p>
-        <ol class="lex-modal__steps">
-          <li>Find your <code>vocabulary.pdf</code> file in Drive.</li>
-          <li>Right-click the file → <strong>Share</strong>.</li>
-          <li>Under <strong>General access</strong>, choose
-              <strong>Anyone with the link</strong> (role: Viewer).</li>
-          <li>Click <strong>Copy link</strong>, then paste the link below.</li>
-          <li>Press <strong>Fetch from Drive</strong>.</li>
-        </ol>
-        <p class="muted">You can paste the full share URL or just the file ID.</p>
-      `,
+      message:
+        'Paste the share URL or file ID of your PDF. The file must be ' +
+        'shared as "Anyone with the link can view" (right-click in Drive → ' +
+        'Share → General access → Anyone with the link).',
       fields: [{
         name: 'file_id', label: 'Drive file URL or ID',
         placeholder: 'https://drive.google.com/file/d/1A2b… or 1A2b…',

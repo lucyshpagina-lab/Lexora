@@ -67,32 +67,6 @@ def test_get_previous_word_decrements(agent, storage):
     assert card["index"] == 1
 
 
-def test_seek_jumps_to_index(agent, storage):
-    _seed(storage)
-    card = agent.seek("u_1", 2)
-    assert card["index"] == 2
-    assert card["word"] == "gracias"
-
-
-def test_seek_clamps_below_zero(agent, storage):
-    _seed(storage, idx=1)
-    card = agent.seek("u_1", -5)
-    assert card["index"] == 0
-
-
-def test_seek_clamps_above_total(agent, storage):
-    _seed(storage)
-    card = agent.seek("u_1", 99)
-    assert card["index"] == 2  # total=3 → clamped to last valid index 2
-
-
-def test_seek_persists_position(agent, storage):
-    _seed(storage)
-    agent.seek("u_1", 1)
-    state = storage.load("u_1")
-    assert state["current_index"] == 1
-
-
 def test_mark_word_seen_flips_flag(agent, storage):
     _seed(storage)
     agent.mark_word_seen("u_1", "hola")

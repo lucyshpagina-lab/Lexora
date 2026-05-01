@@ -3,21 +3,12 @@ import { api } from "../api.js";
 
 const STORAGE_KEY = "lexora.session";
 
-const TOKEN_STORAGE_KEY = "lexora.token";
-
 function readHashSession() {
   if (typeof window === "undefined") return null;
   const hash = window.location.hash.replace(/^#/, "");
   if (!hash) return null;
   const params = new URLSearchParams(hash);
   const userId = params.get("user_id");
-  // The JWT travels via the URL fragment when the user comes from the
-  // static profile page on a different origin. Cache it locally so that
-  // /api/auth/me works for the rest of the React session.
-  const token = params.get("token");
-  if (token) {
-    try { localStorage.setItem(TOKEN_STORAGE_KEY, token); } catch {}
-  }
   if (!userId) return null;
   return { user_id: userId };
 }

@@ -64,24 +64,6 @@ Return EXACTLY 10 sentences. Return ONLY the JSON object. No prose, no markdown 
 """
 
 
-WORD_SENTENCES_PROMPT = """You are a language tutor.
-
-Task:
-Produce {count} short example sentences in {language} that USE the word "{word}" naturally.
-Each sentence must:
-- contain the word "{word}" at least once
-- be 6 to 14 words long
-- be grammatically correct and natural
-
-Output (STRICT JSON):
-{{
-  "sentences": ["...", "..."]
-}}
-
-Return ONLY the JSON object. No prose, no markdown fences.
-"""
-
-
 STRICTER_PREFIX = (
     "Your previous response was rejected because the JSON was invalid or incomplete. "
     "Return ONLY a single JSON value matching the schema. No prose, no code fences, no comments. "

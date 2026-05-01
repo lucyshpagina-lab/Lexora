@@ -25,7 +25,7 @@ export default function Stats({ session }) {
   const { stats } = progress;
   return (
     <div className="panel">
-      <h2>My journey</h2>
+      <h2>Progress</h2>
       <p className="lead">
         Learning {progress.target_language} from {progress.native_language}.
       </p>

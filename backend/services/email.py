@@ -49,10 +49,6 @@ def _send_via_resend(email: str, code: str) -> None:
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            # Cloudflare in front of Resend rejects Python's default urllib UA
-            # with code 1010. Use a vanilla-looking UA so the request goes through.
-            "User-Agent": "lexora/1.0 (+https://github.com/lucyshpagina-lab/Lexora)",
-            "Accept": "application/json",
         },
         method="POST",
     )
@@ -61,5 +57,4 @@ def _send_via_resend(email: str, code: str) -> None:
             if resp.status >= 400:
                 raise RuntimeError(f"Resend API failed: {resp.status}")
     except urllib.error.HTTPError as e:
-        body_preview = e.read().decode("utf-8", errors="replace")[:500]
-        raise RuntimeError(f"Resend API failed: {e.code} {body_preview}") from e
+        raise RuntimeError(f"Resend API failed: {e.code} {e.read()[:200]!r}") from e
