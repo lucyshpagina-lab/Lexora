@@ -33,6 +33,17 @@ class VocabAgent:
         session["current_index"] = max(0, session["current_index"] - 1)
         return self.card_from_session(session)
 
+    def seek_in_session(
+        self, session: Dict[str, Any], idx: int
+    ) -> Optional[Dict[str, Any]]:
+        """Jump to an arbitrary card index, clamped to [0, len)."""
+        total = len(session["vocabulary"])
+        if total == 0:
+            return None
+        clamped = max(0, min(total - 1, int(idx)))
+        session["current_index"] = clamped
+        return self.card_from_session(session)
+
     def mark_seen_in_session(
         self, session: Dict[str, Any], word: Optional[str] = None
     ) -> bool:
@@ -61,6 +72,12 @@ class VocabAgent:
     def get_previous_word(self, user_id: str) -> Optional[Dict[str, Any]]:
         session = self.storage.load(user_id)
         card = self.retreat_in_session(session)
+        self.storage.save(user_id, session)
+        return card
+
+    def seek(self, user_id: str, idx: int) -> Optional[Dict[str, Any]]:
+        session = self.storage.load(user_id)
+        card = self.seek_in_session(session, idx)
         self.storage.save(user_id, session)
         return card
 

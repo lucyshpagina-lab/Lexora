@@ -1,25 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
-import {
-  SPEAKOUT_TOPICS,
-  SPEAKOUT_LEVELS,
-  SPEAKOUT_LEVEL_LABELS,
-} from "../data/speakoutTopics.js";
+import GrammarSidebar from "./GrammarSidebar.jsx";
 
-export default function Grammar({ session }) {
-  const [openLevels, setOpenLevels] = useState(() => new Set(["A1"]));
+export default function Grammar({ session, initialTopic = null, onTopicHandled }) {
   const [selected, setSelected] = useState(null);
   const [content, setContent] = useState(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [error, setError] = useState(null);
-
-  const toggleLevel = (lvl) => {
-    setOpenLevels((prev) => {
-      const next = new Set(prev);
-      if (next.has(lvl)) next.delete(lvl); else next.add(lvl);
-      return next;
-    });
-  };
 
   const openTopic = async (topic, level) => {
     const sel = { ...topic, level };
@@ -37,42 +24,22 @@ export default function Grammar({ session }) {
     }
   };
 
+  // When the parent (App) hands us a topic to auto-open (e.g. user clicked
+  // it from the Learn-view sidebar), open it once and notify back.
+  useEffect(() => {
+    if (!initialTopic) return;
+    openTopic(initialTopic.topic, initialTopic.level);
+    onTopicHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTopic]);
+
   return (
     <div className="study-layout">
-      <aside className="grammar-sidebar">
-        <h2 className="grammar-sidebar__title">Grammar</h2>
-        {SPEAKOUT_LEVELS.map((lvl) => {
-          const isOpen = openLevels.has(lvl);
-          const items = SPEAKOUT_TOPICS[lvl] || [];
-          return (
-            <div key={lvl} className={`grammar-level ${isOpen ? "is-open" : ""}`}>
-              <button
-                type="button"
-                className="grammar-level__head"
-                onClick={() => toggleLevel(lvl)}
-                aria-expanded={isOpen}
-              >
-                <span>{SPEAKOUT_LEVEL_LABELS[lvl]}</span>
-                <span className="grammar-level__count">{items.length}</span>
-                <span className="grammar-level__caret" aria-hidden="true">▶</span>
-              </button>
-              <ul className="grammar-level__items">
-                {items.map((t) => (
-                  <li key={t.topic}>
-                    <button
-                      type="button"
-                      className={`grammar-level__item ${selected?.topic === t.topic ? "is-active" : ""}`}
-                      onClick={() => openTopic(t, lvl)}
-                    >
-                      {t.topic}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </aside>
+      <GrammarSidebar
+        selectedTopic={selected}
+        onTopicClick={(topic, level) => openTopic(topic, level)}
+        title="Grammar"
+      />
 
       <section className="panel">
         {!selected && (

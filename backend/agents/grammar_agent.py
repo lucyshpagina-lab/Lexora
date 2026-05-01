@@ -6,6 +6,7 @@ from llm.client import LLMClient
 from llm.prompts import (
     PHILOLOGY_TOPICS_PROMPT,
     TOPIC_CONTENT_PROMPT,
+    WORD_SENTENCES_PROMPT,
     STRICTER_PREFIX,
 )
 from validators.llm_validator import (
@@ -51,6 +52,36 @@ class GrammarAgent:
                 last_error = e
                 prompt = STRICTER_PREFIX + PHILOLOGY_TOPICS_PROMPT.format(
                     language=language, level=level
+                )
+        raise last_error
+
+    def generate_word_sentences(
+        self, language: str, word: str, count: int = 3, retries: int = 2
+    ) -> List[str]:
+        """Ask the LLM for `count` short example sentences featuring `word`.
+
+        Returns a plain list of strings. The LLM responds in JSON
+        ``{"sentences": [...]}``; we extract the array and validate that we
+        got the requested number of non-empty entries.
+        """
+        prompt = WORD_SENTENCES_PROMPT.format(language=language, word=word, count=count)
+        last_error: Exception = LLMValidationError("no attempts run")
+        for _ in range(retries + 1):
+            try:
+                raw = self.llm.complete(prompt, max_tokens=1500)
+                parsed = extract_json(raw)
+                if not isinstance(parsed, dict) or not isinstance(parsed.get("sentences"), list):
+                    raise LLMValidationError("Expected an object with a 'sentences' array.")
+                sentences = [s.strip() for s in parsed["sentences"] if isinstance(s, str) and s.strip()]
+                if len(sentences) < count:
+                    raise LLMValidationError(
+                        f"Expected {count} sentences, got {len(sentences)}."
+                    )
+                return sentences[:count]
+            except LLMValidationError as e:
+                last_error = e
+                prompt = STRICTER_PREFIX + WORD_SENTENCES_PROMPT.format(
+                    language=language, word=word, count=count
                 )
         raise last_error
 

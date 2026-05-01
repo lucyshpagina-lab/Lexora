@@ -70,9 +70,26 @@ def _topic_content_response(prompt: str) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
+def _word_sentences_response(prompt: str) -> str:
+    word_match = re.search(r'USE the word "([^"]+)"', prompt)
+    word = word_match.group(1) if word_match else "word"
+    count_match = re.search(r"Produce (\d+) short example sentences", prompt)
+    count = int(count_match.group(1)) if count_match else 3
+    sentences = [
+        f"They learned how to use {word} in a friendly conversation today.",
+        f"My teacher wrote {word} on the board and explained the meaning.",
+        f"I will remember the word {word} when I travel next month.",
+        f"Could you spell {word} for me one more time, please?",
+        f"The little child repeated {word} until everyone laughed kindly.",
+    ][:count]
+    return json.dumps({"sentences": sentences}, ensure_ascii=False)
+
+
 def mock_response(prompt: str) -> str:
     if "Generate a COMPLETE and structured list of grammar topics" in prompt:
         return _topics_response()
     if "Generate learning material for" in prompt:
         return _topic_content_response(prompt)
+    if "Produce" in prompt and "short example sentences" in prompt:
+        return _word_sentences_response(prompt)
     return "{}"

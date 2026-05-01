@@ -122,7 +122,7 @@ def test_handle_upload_extracts_words(orch, monkeypatch):
     text = "uno - one\ndos - two\ntres - three"
     # Bypass real PDF parsing — we already test extract_words separately.
     monkeypatch.setattr(orch.file_agent, "read_pdf_local", lambda b: text)
-    out = orch.handle_upload("words.pdf", b"%PDF-1.4 stub", "English", "Spanish")
+    out = orch.handle_upload("vocabulary.pdf", b"%PDF-1.4 stub", "English", "Spanish")
     assert out["total"] == 3
     state = orch.storage.load(out["user_id"])
     assert [v["word"] for v in state["vocabulary"]] == ["uno", "dos", "tres"]
@@ -132,12 +132,24 @@ def test_handle_upload_returns_parse_stats(orch, monkeypatch):
     """Upload response must surface parse stats so the UI can show progress."""
     text = (
         "uno - one\n"
-        "this line cannot be parsed\n"
         "dos - two\n"
+        "tres - three\n"
     )
     monkeypatch.setattr(orch.file_agent, "read_pdf_local", lambda b: text)
-    out = orch.handle_upload("words.pdf", b"%PDF-1.4", "English", "Spanish")
-    assert out["parse_stats"] == {"parsed": 2, "total_lines": 3}
+    out = orch.handle_upload("vocabulary.pdf", b"%PDF-1.4", "English", "Spanish")
+    assert out["parse_stats"] == {"parsed": 3, "total_lines": 3}
+
+
+def test_handle_upload_rejects_non_pair_content(orch, monkeypatch):
+    """Strict content gate: a file with prose lines must be rejected."""
+    import pytest
+    from validators.file_validator import FileValidationError
+    monkeypatch.setattr(
+        orch.file_agent, "read_pdf_local",
+        lambda b: "uno - one\nthis is not a pair\n",
+    )
+    with pytest.raises(FileValidationError, match="word1 - word2"):
+        orch.handle_upload("vocabulary.pdf", b"%PDF-1.4", "English", "Spanish")
 
 
 def test_handle_drive_upload_uses_mcp_then_parses(orch, monkeypatch):
@@ -157,8 +169,56 @@ def test_handle_drive_upload_uses_mcp_then_parses(orch, monkeypatch):
 def test_handle_upload_rejects_txt(orch):
     import pytest
     from validators.file_validator import FileValidationError
-    with pytest.raises(FileValidationError, match="Unsupported"):
+    with pytest.raises(FileValidationError, match="must be named"):
         orch.handle_upload("words.txt", b"uno - one", "English", "Spanish")
+
+
+def test_handle_upload_rejects_wrong_pdf_name(orch):
+    """Even a .pdf file is rejected unless it is exactly vocabulary.pdf."""
+    import pytest
+    from validators.file_validator import FileValidationError
+    with pytest.raises(FileValidationError, match="must be named"):
+        orch.handle_upload("notes.pdf", b"%PDF-1.4", "English", "Spanish")
+
+
+def test_seek_card_jumps_to_index(orch):
+    out = orch.handle_demo()
+    uid = out["user_id"]
+    card = orch.seek_card(uid, 5)
+    assert card["index"] == 5
+    # Position survives a re-load.
+    again = orch.get_card(uid)
+    assert again["index"] == 5
+
+
+def test_seek_card_clamps_invalid_index(orch):
+    out = orch.handle_demo()
+    uid = out["user_id"]
+    card = orch.seek_card(uid, 999)
+    assert card["index"] == out["total"] - 1
+
+
+def test_generate_word_sentences_returns_payload(orch):
+    out = orch.handle_demo()
+    uid = out["user_id"]
+    result = orch.generate_word_sentences(uid, count=3)
+    assert result["word"] == "hola"
+    assert result["language"] == "Spanish"
+    assert isinstance(result["sentences"], list)
+    assert len(result["sentences"]) == 3
+    # Mock LLM weaves the word into every sentence.
+    assert all("hola" in s for s in result["sentences"])
+
+
+def test_generate_word_sentences_no_active_card_raises(orch):
+    out = orch.handle_demo()
+    uid = out["user_id"]
+    # Push the index past the deck, leaving no active card.
+    state = orch.storage.load(uid)
+    state["current_index"] = len(state["vocabulary"])
+    orch.storage.save(uid, state)
+    with pytest.raises(LookupError, match="No active card"):
+        orch.generate_word_sentences(uid)
 
 
 def test_review_does_one_load_and_one_save(orch):

@@ -5,7 +5,11 @@ import re
 from pathlib import Path
 from typing import List, Dict, Tuple
 
-from validators.file_validator import validate_file as _validate, FileValidationError
+from validators.file_validator import (
+    FileValidationError,
+    validate_file as _validate,
+    validate_pair_lines as _validate_pairs,
+)
 
 
 # Word-translation separators we recognize: dashes, colon, equals, tab,
@@ -126,9 +130,13 @@ class FileAgent:
     def extract_words_with_stats(
         self, content: str
     ) -> Tuple[List[Dict[str, str]], Dict[str, int]]:
-        """Like extract_words, but also returns parse stats for UI feedback."""
-        if not content or not content.strip():
-            raise FileValidationError("Document is empty after extraction.")
+        """Like extract_words, but also returns parse stats for UI feedback.
+
+        Strict mode: every non-empty line must be a 'word - translation' pair.
+        We reject the whole file if any line fails to match — this is a
+        security gate, not a best-effort parser.
+        """
+        _validate_pairs(content)
 
         entries: List[Dict[str, str]] = []
         seen = set()
@@ -138,19 +146,15 @@ class FileAgent:
             if not line:
                 continue
             total_lines += 1
-            # Skip lines that are obviously prose (long, no separator).
-            if len(line) > 300:
-                continue
             m = _SEPARATOR_RE.match(line)
-            if not m:
-                continue
+            # _validate_pairs guarantees a match for every non-empty line.
+            assert m is not None
             word = m.group("word").strip().rstrip(".,;")
             translation = m.group("translation").strip().rstrip(".,;")
             if not word or not translation:
-                continue
-            if any(ch.isdigit() for ch in word) and len(word) <= 3:
-                # likely a page-number / list-index artefact
-                continue
+                raise FileValidationError(
+                    f"Empty word or translation in line: {line!r}"
+                )
             key = word.lower()
             if key in seen:
                 continue

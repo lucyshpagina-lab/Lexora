@@ -1,4 +1,14 @@
 const BASE = "/api";
+const TOKEN_KEY = "lexora.token";
+
+function authHeaders() {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
 
 async function jsonOrThrow(res) {
   const ct = res.headers.get("content-type") || "";
@@ -47,6 +57,23 @@ export const api = {
       method: "POST",
     }).then(jsonOrThrow),
 
+  advanceWord: (userId) =>
+    fetch(`${BASE}/word/advance?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+    }).then(jsonOrThrow),
+
+  seekWord: (userId, index) =>
+    fetch(
+      `${BASE}/word/seek?user_id=${encodeURIComponent(userId)}&index=${index}`,
+      { method: "POST" }
+    ).then(jsonOrThrow),
+
+  wordSentences: (userId, count = 3) =>
+    fetch(
+      `${BASE}/word/sentences?user_id=${encodeURIComponent(userId)}&count=${count}`,
+      { method: "POST" }
+    ).then(jsonOrThrow),
+
   review: (userId, answer, advance = true) =>
     fetch(`${BASE}/review`, {
       method: "POST",
@@ -68,4 +95,34 @@ export const api = {
 
   progress: (userId) =>
     fetch(`${BASE}/progress/${encodeURIComponent(userId)}`).then(jsonOrThrow),
+
+  vocabulary: (userId) =>
+    fetch(`${BASE}/vocabulary?user_id=${encodeURIComponent(userId)}`).then(jsonOrThrow),
+
+  me: () =>
+    fetch(`${BASE}/auth/me`, { headers: authHeaders() }).then(jsonOrThrow),
+
+  uploadAvatar: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return fetch(`${BASE}/auth/avatar`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: fd,
+    }).then(jsonOrThrow);
+  },
+
+  // -- History --
+
+  history: () =>
+    fetch(`${BASE}/history`, { headers: authHeaders() }).then(jsonOrThrow),
+
+  historyEntry: (uploadId) =>
+    fetch(`${BASE}/history/${uploadId}`, { headers: authHeaders() }).then(jsonOrThrow),
+
+  historyRestore: (uploadId) =>
+    fetch(`${BASE}/history/${uploadId}/restore`, {
+      method: "POST",
+      headers: authHeaders(),
+    }).then(jsonOrThrow),
 };
